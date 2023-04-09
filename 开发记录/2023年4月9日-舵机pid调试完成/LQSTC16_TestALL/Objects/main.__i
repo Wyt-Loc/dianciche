@@ -1,0 +1,1 @@
+"user\main.c" LARGE INTR2 BROWSE INCDIR(.\user;.\LQlib\app;.\LQlib\driver) DEBUG PRINT(.\Listings\main.lst) TABS (2) OBJECT(.\Objects\main.obj)

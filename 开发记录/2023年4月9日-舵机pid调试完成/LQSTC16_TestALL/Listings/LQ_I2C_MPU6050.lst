@@ -1,0 +1,485 @@
+C251 COMPILER V5.57.0,  LQ_I2C_MPU6050                                                     03/01/21  14:57:48  PAGE 1   
+
+
+C251 COMPILER V5.57.0, COMPILATION OF MODULE LQ_I2C_MPU6050
+OBJECT MODULE PLACED IN .\Objects\LQ_I2C_MPU6050.obj
+COMPILER INVOKED BY: D:\Keil_v5\C251\BIN\C251.EXE LQlib\app\LQ_I2C_MPU6050.c LARGE INTR2 BROWSE INCDIR(.\user;.\LQlib\ap
+                    -p;.\LQlib\ddc;.\LQlib\driver) DEBUG PRINT(.\Listings\LQ_I2C_MPU6050.lst) TABS(2) OBJECT(.\Objects\LQ_I2C_MPU6050.obj) 
+
+stmt  level    source
+
+    1          /*LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
+    2          【平    台】北京龙邱智能科技TC264DA核心板
+    3          【编    写】ZYF/chiusir
+    4          【E-mail  】chiusir@163.com
+    5          【软件版本】V1.1 版权所有，单位使用请先联系授权
+    6          【最后更新】2020年4月10日
+    7          【相关信息参考下列地址】
+    8          【网    站】http://www.lqist.cn
+    9          【淘宝店铺】http://longqiu.taobao.com
+   10          ------------------------------------------------
+   11          【dev.env.】Hightec4.9.3/Tasking6.3及以上版本
+   12          【Target 】 TC264DA
+   13          【Crystal】 20.000Mhz
+   14          【SYS PLL】 200MHz
+   15          ________________________________________________________________
+   16          
+   17          QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ*/
+   18          #include "include.h"
+   19          #include "LQ_I2C_MPU6050.h"
+   20          /**
+   21          * @brief    读取MPU6050或者ICM20602原始数据 测试
+   22          *
+   23          * @param
+   24          *
+   25          * @return
+   26          *
+   27          * @note
+   28          *
+   29          * @see      Test_MPU6050();
+   30          *
+   31          * @date     2019/6/12 星期三
+   32          */
+   33          void Test_MPU6050(void)
+   34          {
+   35   1        char  txt[30];
+   36   1        signed short  aacx,aacy,aacz;          //加速度传感器原始数据
+   37   1        signed short  gyrox,gyroy,gyroz;          //陀螺仪原始数据
+   38   1        
+   39   1        OLED_Init();                          //LCD初始化
+   40   1        OLED_CLS();                           //LCD清屏
+   41   1        IIC_Init();
+   42   1        
+   43   1        OLED_P8x16Str(15,0,"LQ 6050 Test");
+   44   1        
+   45   1        if(MPU6050_Init())
+   46   1        {
+   47   2          OLED_P8x16Str(15,2,"6050 Test Fail \r\n");
+   48   2          while (1);
+   49   2        }
+   50   1        
+   51   1        while(1)
+   52   1        {
+   53   2          MPU_Get_Raw_data(&aacx,&aacy,&aacz,&gyrox,&gyroy,&gyroz); //得到加速度传感器数据
+   54   2          sprintf((char*)txt,"ax:%06d",aacx);
+   55   2          OLED_P6x8Str(0,2,txt);
+   56   2          sprintf((char*)txt,"ay:%06d",aacy);
+   57   2          OLED_P6x8Str(0,3,txt);
+   58   2          sprintf((char*)txt,"az:%06d",aacz);
+C251 COMPILER V5.57.0,  LQ_I2C_MPU6050                                                     03/01/21  14:57:48  PAGE 2   
+
+   59   2          OLED_P6x8Str(0,4,txt);
+   60   2          sprintf((char*)txt,"gx:%06d",gyrox);
+   61   2          OLED_P6x8Str(0,5,txt);
+   62   2          sprintf((char*)txt,"gy:%06d",gyroy);
+   63   2          OLED_P6x8Str(0,6,txt);
+   64   2          sprintf((char*)txt,"gz:%06d",gyroz);
+   65   2          OLED_P6x8Str(0,7,txt);
+   66   2          
+   67   2          delayms(100);
+   68   2          
+   69   2        }
+   70   1        
+   71   1      }
+   72          
+   73          /**
+   74          * @brief    不精确延时
+   75          *
+   76          * @param    无
+   77          *
+   78          * @return   无
+   79          *
+   80          * @note     无
+   81          *
+   82          * @see      delayms_mpu(100);
+   83          *
+   84          * @date     2019/4/22 星期一
+   85          */
+   86          void delayms_mpu(unsigned short ms)
+   87          {
+   88   1        while(ms--)
+   89   1        {
+   90   2          unsigned short  i = 300;
+   91   2          while(i--)
+   92   2          {
+   93   3            ;
+   94   3          }
+   95   2        }
+   96   1      }
+   97          
+   98          
+   99          /**
+  100          * @brief    初始化MPU6050 或者 ICM20602
+  101          *
+  102          * @param    无
+  103          *
+  104          * @return   0：初始化成功   1：失败
+  105          *
+  106          * @note     使用前先初始化IIC接口
+  107          *
+  108          * @see      MPU6050_Init();
+  109          *
+  110          * @date     2019/6/12 星期三
+  111          */
+  112          unsigned char MPU6050_Init(void)
+  113          {
+  114   1        int  res;
+  115   1        res = MPU_Read_Byte(MPU6050_ADDR,WHO_AM_I);           //读取MPU6050的ID
+  116   1        if(res == MPU6050_ID)                                 //器件ID正确
+  117   1        {
+  118   2          //printf("MPU6050 is OK!\r\n");
+  119   2        }
+  120   1        else if(res == 0x12)                                  //ICM20602 器件ID正确
+  121   1        {
+  122   2          
+  123   2          //printf("ICM20602 is OK!\r\n");
+  124   2        }
+C251 COMPILER V5.57.0,  LQ_I2C_MPU6050                                                     03/01/21  14:57:48  PAGE 3   
+
+  125   1        else
+  126   1        {
+  127   2          //printf("\r\nThe correct IMU was not detected\r\nPlease check the wiring ID=%X\r\n",res);
+  128   2          return 1;
+  129   2        }  
+  130   1        
+  131   1        MPU_Write_Byte(MPU6050_ADDR,MPU_PWR_MGMT1_REG,0X80);//复位MPU6050
+  132   1        delayms_mpu(100);  //延时100ms
+  133   1        MPU_Write_Byte(MPU6050_ADDR,MPU_PWR_MGMT1_REG,0X00);//唤醒MPU6050
+  134   1        MPU_Set_Gyro_Fsr(3);                       //陀螺仪传感器,±2000dps
+  135   1        MPU_Set_Accel_Fsr(1);                    //加速度传感器,±4g
+  136   1        MPU_Set_Rate(1000);                      //设置采样率1000Hz
+  137   1        MPU_Write_Byte(MPU6050_ADDR,MPU_CFG_REG,0x02);      //设置数字低通滤波器   98hz
+  138   1        MPU_Write_Byte(MPU6050_ADDR,MPU_INT_EN_REG,0X00);   //关闭所有中断
+  139   1        MPU_Write_Byte(MPU6050_ADDR,MPU_USER_CTRL_REG,0X00);//I2C主模式关闭
+  140   1        MPU_Write_Byte(MPU6050_ADDR,MPU_PWR_MGMT1_REG,0X01);//设置CLKSEL,PLL X轴为参考
+  141   1        MPU_Write_Byte(MPU6050_ADDR,MPU_PWR_MGMT2_REG,0X00);//加速度与陀螺仪都工作
+  142   1      
+  143   1        
+  144   1        return 0;
+  145   1      }
+  146          
+  147          
+  148          
+  149          
+  150          /**
+  151          * @brief    设置陀螺仪测量范围
+  152          *
+  153          * @param    fsr:0,±250dps;1,±500dps;2,±1000dps;3,±2000dps
+  154          *
+  155          * @return   0 ：设置成功
+  156          *
+  157          * @note     无
+  158          *
+  159          * @see      MPU_Set_Gyro_Fsr(3);      //陀螺仪传感器,±2000dps
+  160          *
+  161          * @date     2019/6/12 星期三
+  162          */
+  163          unsigned char MPU_Set_Gyro_Fsr(unsigned char fsr)
+  164          {
+  165   1        return MPU_Write_Byte(MPU6050_ADDR,MPU_GYRO_CFG_REG,fsr<<3);
+  166   1      }
+  167          
+  168          
+  169          
+  170          /**
+  171          * @brief    设置加速度计测量范围
+  172          *
+  173          * @param    fsr:0,±2g;1,±4g;2,±8g;3,±16g
+  174          *
+  175          * @return   0：设置成功
+  176          *
+  177          * @note     无
+  178          *
+  179          * @see      MPU_Set_Accel_Fsr(1);     //加速度传感器,±4g
+  180          *
+  181          * @date     2019/6/12 星期三
+  182          */
+  183          unsigned char MPU_Set_Accel_Fsr(unsigned char fsr)
+  184          {
+  185   1        return MPU_Write_Byte(MPU6050_ADDR,MPU_ACCEL_CFG_REG,fsr<<3);
+  186   1      }
+  187          
+  188          
+  189          
+  190          /**
+C251 COMPILER V5.57.0,  LQ_I2C_MPU6050                                                     03/01/21  14:57:48  PAGE 4   
+
+  191          * @brief    设置数字低通滤波
+  192          *
+  193          * @param    lpf:数字低通滤波频率(Hz)
+  194          *
+  195          * @return   0：设置成功
+  196          *
+  197          * @note     无
+  198          *
+  199          * @see      MPU_Set_LPF(100);
+  200          *
+  201          * @date     2019/6/12 星期三
+  202          */
+  203          unsigned char MPU_Set_LPF(unsigned short lpf)
+  204          {
+  205   1        unsigned char  dat=0;
+  206   1        
+  207   1        if(lpf>=188)dat=1;
+  208   1        else if(lpf>=98)dat=2;
+  209   1        else if(lpf>=42)dat=3;
+  210   1        else if(lpf>=20)dat=4;
+  211   1        else if(lpf>=10)dat=5;
+  212   1        else dat=6;
+  213   1        return MPU_Write_Byte(MPU6050_ADDR,MPU_CFG_REG,dat);//设置数字低通滤波器
+  214   1      }
+  215          
+  216          
+  217          
+  218          
+  219          /**
+  220          * @brief    设置采样率
+  221          *
+  222          * @param    rate:4~1000(Hz)
+  223          *
+  224          * @return   0：设置成功
+  225          *
+  226          * @note     无
+  227          *
+  228          * @see      MPU_Set_Rate(1000);            //设置采样率1000Hz
+  229          *
+  230          * @date     2019/6/12 星期三
+  231          */
+  232          unsigned char MPU_Set_Rate(unsigned short rate)
+  233          {
+  234   1        unsigned char  dat;
+  235   1        
+  236   1        if(rate>1000)rate=1000;
+  237   1        if(rate<4)rate=4;
+  238   1        dat=1000/rate-1;
+  239   1        MPU_Write_Byte(MPU6050_ADDR,MPU_SAMPLE_RATE_REG,dat);     //设置数字低通滤波器
+  240   1        return MPU_Set_LPF(rate/2);                                 //自动设置LPF为采样率的一半
+  241   1      }
+  242          
+  243          
+  244          
+  245          /**
+  246          * @brief    获取温度值
+  247          *
+  248          * @param    无
+  249          *
+  250          * @return   温度值(扩大了100倍)
+  251          *
+  252          * @note     无
+  253          *
+  254          * @see      signed short temp = MPU_Get_Temperature();
+  255          *
+  256          * @date     2019/6/12 星期三
+C251 COMPILER V5.57.0,  LQ_I2C_MPU6050                                                     03/01/21  14:57:48  PAGE 5   
+
+  257          */
+  258          short MPU_Get_Temperature(void)
+  259          {
+  260   1        unsigned char  buf[2];
+  261   1        short raw;
+  262   1        float temp;
+  263   1        MPU_Read_Len(MPU6050_ADDR,MPU_TEMP_OUTH_REG,2,buf);
+  264   1        raw=((u16)buf[0]<<8)|buf[1];
+  265   1        temp=21+((double)raw)/333.87;
+  266   1        return (short)temp*100;
+  267   1      }
+  268          
+  269          
+  270          
+  271          
+  272          
+  273          /**
+  274          * @brief    获取陀螺仪值
+  275          *
+  276          * @param    gx,gy,gz:陀螺仪x,y,z轴的原始读数(带符号)
+  277          *
+  278          * @return   0：读取成功
+  279          *
+  280          * @note     无
+  281          *
+  282          * @see      signed short data[3];
+  283          * @see      MPU_Get_Gyroscope(&data[0], &data[1], &data[2]);
+  284          *
+  285          * @date     2019/6/12 星期三
+  286          */
+  287          unsigned char MPU_Get_Gyroscope(signed short *gx,signed short *gy,signed short *gz)
+  288          {
+  289   1        unsigned char  buf[6],res;
+  290   1        res=MPU_Read_Len(MPU6050_ADDR,MPU_GYRO_XOUTH_REG,6,buf);
+  291   1        if(res==0)
+  292   1        {
+  293   2          *gx=((unsigned short)buf[0]<<8)|buf[1];
+  294   2          *gy=((unsigned short)buf[2]<<8)|buf[3];
+  295   2          *gz=((unsigned short)buf[4]<<8)|buf[5];
+  296   2        }
+  297   1        return res;
+  298   1      }
+  299          
+  300          
+  301          
+  302          
+  303          /**
+  304          * @brief    获取加速度值
+  305          *
+  306          * @param    ax,ay,az:陀螺仪x,y,z轴的原始读数(带符号)
+  307          *
+  308          * @return   0：读取成功
+  309          *
+  310          * @note     无
+  311          *
+  312          * @see      signed short data[3];
+  313          * @see      MPU_Get_Accelerometer(&data[0], &data[1], &data[2]);
+  314          *
+  315          * @date     2019/6/12 星期三
+  316          */
+  317          unsigned char MPU_Get_Accelerometer(signed short *ax,signed short *ay,signed short *az)
+  318          {
+  319   1        unsigned char  buf[6],res;
+  320   1        res=MPU_Read_Len(MPU6050_ADDR,MPU_ACCEL_XOUTH_REG,6,buf);
+  321   1        if(res==0)
+  322   1        {
+C251 COMPILER V5.57.0,  LQ_I2C_MPU6050                                                     03/01/21  14:57:48  PAGE 6   
+
+  323   2          *ax=((unsigned short)buf[0]<<8)|buf[1];
+  324   2          *ay=((unsigned short)buf[2]<<8)|buf[3];
+  325   2          *az=((unsigned short)buf[4]<<8)|buf[5];
+  326   2        }
+  327   1        return res;
+  328   1      }
+  329          
+  330          
+  331          
+  332          
+  333          /**
+  334          * @brief    获取 加速度值 角速度值
+  335          *
+  336          * @param    ax,ay,az:陀螺仪x,y,z轴的原始读数(带符号)
+  337          * @param    gx,gy,gz:陀螺仪x,y,z轴的原始读数(带符号)
+  338          *
+  339          * @return   0：读取成功
+  340          *
+  341          * @note     无
+  342          *
+  343          * @see      signed short data[6];
+  344          * @see      ICM_Get_Raw_data(&data[0], &data[1], &data[2],&data[3], &data[4], &data[5]);
+  345          *
+  346          */
+  347          unsigned char MPU_Get_Raw_data(signed short *ax,signed short *ay,signed short *az,signed short *gx,signed
+             - short *gy,signed short *gz)
+  348          {
+  349   1        unsigned char  buf[14],res;
+  350   1        res=MPU_Read_Len(MPU6050_ADDR,MPU_ACCEL_XOUTH_REG,14,buf);
+  351   1        if(res==0)
+  352   1        {
+  353   2          *ax=((unsigned short)buf[0]<<8)|buf[1];
+  354   2          *ay=((unsigned short)buf[2]<<8)|buf[3];
+  355   2          *az=((unsigned short)buf[4]<<8)|buf[5];
+  356   2          *gx=((unsigned short)buf[8]<<8)|buf[9];
+  357   2          *gy=((unsigned short)buf[10]<<8)|buf[11];
+  358   2          *gz=((unsigned short)buf[12]<<8)|buf[13];
+  359   2        }
+  360   1        return res;
+  361   1      }
+  362          
+  363          
+  364          
+  365          
+  366          
+  367          /**
+  368          * @brief    IIC 连续读
+  369          *
+  370          * @param    addr:器件地址
+  371          * @param    reg :要读取的寄存器地址
+  372          * @param    len :要读取的长度
+  373          * @param    buf :读取到的数据存储区
+  374          *
+  375          * @return   0 ：读取成功
+  376          *
+  377          * @note     底层驱动 移植时需要修改
+  378          *
+  379          * @see      unsigned char buf[14];
+  380          * @see      MPU_Read_Len(MPU6050_ADDR,MPU_ACCEL_XOUTH_REG,14,buf);
+  381          *
+  382          * @date     2019/6/12 星期三
+  383          */
+  384          unsigned char MPU_Read_Len(unsigned char addr,unsigned char reg,unsigned char len,unsigned char *buf)
+  385          {
+  386   1        return IIC_ReadMultByteFromSlave(addr<<1, reg, len, buf);
+  387   1      }
+C251 COMPILER V5.57.0,  LQ_I2C_MPU6050                                                     03/01/21  14:57:48  PAGE 7   
+
+  388          
+  389          
+  390          
+  391          /**
+  392          * @brief    IIC 写一个寄存器
+  393          *
+  394          * @param    addr  :器件地址
+  395          * @param    reg   :寄存器地址
+  396          * @param    value :要写入的值
+  397          *
+  398          * @return   0 ：读取成功
+  399          *
+  400          * @note     底层驱动 移植时需要修改
+  401          *
+  402          * @see      MPU_Write_Byte(MPU6050_ADDR,MPU_SAMPLE_RATE_REG,1);
+  403          *
+  404          * @date     2019/6/12 星期三
+  405          */
+  406          unsigned char MPU_Write_Byte(unsigned char addr,unsigned char reg,unsigned char value)
+  407          {
+  408   1        return IIC_WriteByteToSlave(addr<<1, reg, value);
+  409   1      }
+  410          
+  411          
+  412          /**
+  413          * @brief    IIC 读一个寄存器
+  414          *
+  415          * @param    addr  :器件地址
+  416          * @param    reg   :寄存器地址
+  417          *
+  418          * @return   读取的值
+  419          *
+  420          * @note     底层驱动 移植时需要修改
+  421          *
+  422          * @see      MPU_Read_Byte(MPU6050_ADDR,WHO_AM_I);
+  423          *
+  424          * @date     2019/6/12 星期三
+  425          */
+  426          unsigned char MPU_Read_Byte(unsigned char addr,unsigned char reg)
+  427          {
+  428   1        unsigned char value[1];
+  429   1        MPU_Read_Len(addr, reg, 1, value);
+  430   1        return value[0];
+  431   1      }
+  432          
+  433          
+  434          
+  435          
+  436          
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =      1281     ------
+  ecode size           =    ------     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =    ------        107
+  xdata-const size     =    ------     ------
+  edata size           =    ------     ------
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+C251 COMPILER V5.57.0,  LQ_I2C_MPU6050                                                     03/01/21  14:57:48  PAGE 8   
+
+  const size           =    ------     ------
+  hconst size          =        79     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

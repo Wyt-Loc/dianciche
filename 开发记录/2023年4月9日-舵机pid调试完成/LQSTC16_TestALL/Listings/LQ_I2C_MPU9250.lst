@@ -1,0 +1,503 @@
+C251 COMPILER V5.57.0,  LQ_I2C_MPU9250                                                     03/01/21  14:57:48  PAGE 1   
+
+
+C251 COMPILER V5.57.0, COMPILATION OF MODULE LQ_I2C_MPU9250
+OBJECT MODULE PLACED IN .\Objects\LQ_I2C_MPU9250.obj
+COMPILER INVOKED BY: D:\Keil_v5\C251\BIN\C251.EXE LQlib\app\LQ_I2C_MPU9250.c LARGE INTR2 BROWSE INCDIR(.\user;.\LQlib\ap
+                    -p;.\LQlib\ddc;.\LQlib\driver) DEBUG PRINT(.\Listings\LQ_I2C_MPU9250.lst) TABS(2) OBJECT(.\Objects\LQ_I2C_MPU9250.obj) 
+
+stmt  level    source
+
+    1          /*LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
+    2          【平    台】北京龙邱智能科技TC264DA核心板
+    3          【编    写】ZYF/chiusir
+    4          【E-mail  】chiusir@163.com
+    5          【软件版本】V1.1 版权所有，单位使用请先联系授权
+    6          【最后更新】2020年10月28日
+    7          【相关信息参考下列地址】
+    8          【网    站】http://www.lqist.cn
+    9          【淘宝店铺】http://longqiu.taobao.com
+   10          ------------------------------------------------
+   11          【dev.env.】AURIX Development Studio1.2.2及以上版本
+   12          【Target 】 TC264DA/TC264D
+   13          【Crystal】 20.000Mhz
+   14          【SYS PLL】 200MHz
+   15          ________________________________________________________________
+   16          基于iLLD_1_0_1_11_0底层程序,
+   17          
+   18          使用例程的时候，建议采用没有空格的英文路径，
+   19          除了CIF为TC264DA独有外，其它的代码兼容TC264D
+   20          本库默认初始化了EMEM：512K，如果用户使用TC264D，注释掉EMEM_InitConfig()初始化函数。
+   21          工程下\Libraries\iLLD\TC26B\Tricore\Cpu\CStart\IfxCpu_CStart0.c第164行左右。
+   22          QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ*/
+   23          #include "include.h"
+   24          #include "LQ_I2C_MPU9250.h"
+   25          
+   26          /**
+   27          * @brief    初始化MPU9250
+   28          *
+   29          * @param    无
+   30          *
+   31          * @return   0：初始化成功   1：失败
+   32          *
+   33          * @note     使用前先初始化IIC接口
+   34          *
+   35          * @see      MPU9250_Init();
+   36          *
+   37          * @date     2020/12/15 星期二
+   38          */
+   39          void MPU9250_Init(void)
+   40          {
+   41   1        IIC_Init();                                           //MPU9250 支持400K IIC  
+   42   1      
+   43   1        MPU9250_Write_Byte(MPU9250_ADDR,MPU_PWR_MGMT1_REG,0X80);//复位MPU9250
+   44   1        delayms(100);  //延时100ms
+   45   1        MPU9250_Write_Byte(MPU9250_ADDR,MPU_PWR_MGMT1_REG,0X00);//唤醒MPU9250
+   46   1        MPU9250_Set_Gyro_Fsr(3);                                //陀螺仪传感器,±2000dps
+   47   1        MPU9250_Set_Accel_Fsr(1);                               //加速度传感器,±4g
+   48   1        MPU9250_Set_Rate(1000);                                 //设置采样率1000Hz
+   49   1        MPU9250_Write_Byte(MPU9250_ADDR,MPU_INT_EN_REG,0X00);   //关闭所有中断
+   50   1        MPU9250_Write_Byte(MPU9250_ADDR,MPU_CFG_REG,0x02);      //设置数字低通滤波器   98hz
+   51   1        MPU9250_Write_Byte(MPU9250_ADDR,MPU_USER_CTRL_REG,0X00);//I2C主模式关闭
+   52   1        MPU9250_Write_Byte(MPU9250_ADDR,MPU_FIFO_EN_REG,0X00);  //关闭FIFO
+   53   1        MPU9250_Write_Byte(MPU9250_ADDR,MPU_INTBP_CFG_REG,0X82);//INT引脚低电平有效，开启bypass模式
+   54   1        MPU9250_Write_Byte(MPU9250_ADDR,MPU_PWR_MGMT1_REG,0X01);//设置CLKSEL,PLL X轴为参考
+   55   1        MPU9250_Write_Byte(MPU9250_ADDR,MPU_PWR_MGMT2_REG,0X00);//加速度与陀螺仪都工作
+   56   1      }
+   57          
+   58          /**
+C251 COMPILER V5.57.0,  LQ_I2C_MPU9250                                                     03/01/21  14:57:48  PAGE 2   
+
+   59          * @brief    设置陀螺仪测量范围
+   60          *
+   61          * @param    fsr:0,±250dps;1,±500dps;2,±1000dps;3,±2000dps
+   62          *
+   63          * @return   0 ：设置成功
+   64          *
+   65          * @note     无
+   66          *
+   67          * @see      MPU9250_Set_Gyro_Fsr(3);      //陀螺仪传感器,±2000dps
+   68          *
+   69          * @date     2020/12/10 星期四
+   70          */
+   71          unsigned char MPU9250_Set_Gyro_Fsr(uint8 fsr)
+   72          {
+   73   1        return MPU9250_Write_Byte(MPU9250_ADDR,MPU_GYRO_CFG_REG,fsr<<3);
+   74   1      }
+   75          
+   76          
+   77          
+   78          /**
+   79          * @brief    设置加速度计测量范围
+   80          *
+   81          * @param    fsr:0,±2g;1,±4g;2,±8g;3,±16g
+   82          *
+   83          * @return   0：设置成功
+   84          *
+   85          * @note     无
+   86          *
+   87          * @see      MPU9250_Set_Accel_Fsr(1);     //加速度传感器,±4g
+   88          *
+   89          * @date     2020/12/10 星期四
+   90          */
+   91          unsigned char MPU9250_Set_Accel_Fsr(uint8 fsr)
+   92          {
+   93   1        return MPU9250_Write_Byte(MPU9250_ADDR,MPU_ACCEL_CFG_REG,fsr<<3);
+   94   1      }
+   95          
+   96          
+   97          
+   98          /**
+   99          * @brief    设置数字低通滤波
+  100          *
+  101          * @param    lpf:数字低通滤波频率(Hz)
+  102          *
+  103          * @return   0：设置成功
+  104          *
+  105          * @note     无
+  106          *
+  107          * @see      MPU9250_Set_LPF(100);
+  108          *
+  109          * @date     2020/12/10 星期四
+  110          */
+  111          unsigned char MPU9250_Set_LPF(unsigned short lpf)
+  112          {
+  113   1        unsigned char  lqdat=0;
+  114   1        
+  115   1        if(lpf>=188)lqdat=1;
+  116   1        else if(lpf>=98)lqdat=2;
+  117   1        else if(lpf>=42)lqdat=3;
+  118   1        else if(lpf>=20)lqdat=4;
+  119   1        else if(lpf>=10)lqdat=5;
+  120   1        else lqdat=6;
+  121   1        return MPU9250_Write_Byte(MPU9250_ADDR,MPU_CFG_REG,lqdat);//设置数字低通滤波器
+  122   1      }
+  123          
+  124          
+C251 COMPILER V5.57.0,  LQ_I2C_MPU9250                                                     03/01/21  14:57:48  PAGE 3   
+
+  125          
+  126          
+  127          /**
+  128          * @brief    设置采样率
+  129          *
+  130          * @param    rate:4~1000(Hz)
+  131          *
+  132          * @return   0：设置成功
+  133          *
+  134          * @note     无
+  135          *
+  136          * @see      MPU9250_Set_Rate(1000);            //设置采样率1000Hz
+  137          *
+  138          * @date     2020/12/10 星期四
+  139          */
+  140          unsigned char MPU9250_Set_Rate(unsigned short rate)
+  141          {
+  142   1        unsigned char  lqdat;
+  143   1        if(rate>1000)rate=1000;
+  144   1        if(rate<4)rate=4;
+  145   1        lqdat = 1000/rate-1;
+  146   1        MPU9250_Write_Byte(MPU9250_ADDR,MPU_SAMPLE_RATE_REG,lqdat);     //设置数字低通滤波器
+  147   1        return MPU9250_Set_LPF(rate/2);                                 //自动设置LPF为采样率的一半
+  148   1      }
+  149          
+  150          
+  151          
+  152          /**
+  153          * @brief    获取温度值
+  154          *
+  155          * @param    无
+  156          *
+  157          * @return   温度值(扩大了100倍)
+  158          *
+  159          * @note     无
+  160          *
+  161          * @see      signed short temp = MPU9250_Get_Temperature();
+  162          *
+  163          * @date     2020/12/10 星期四
+  164          */
+  165          short MPU9250_Get_Temperature(void)
+  166          {
+  167   1        unsigned char  buf[2];
+  168   1        short raw;
+  169   1        float temp;
+  170   1        MPU9250_Read_Len(MPU9250_ADDR,MPU_TEMP_OUTH_REG,2,buf);
+  171   1        raw=((unsigned short)buf[0]<<8)|buf[1];
+  172   1        temp=21+((double)raw)/333.87;
+  173   1        return (short)temp*100;
+  174   1      }
+  175          
+  176          
+  177          
+  178          
+  179          
+  180          /**
+  181          * @brief    获取陀螺仪值
+  182          *
+  183          * @param    gx,gy,gz:陀螺仪x,y,z轴的原始读数(带符号)
+  184          *
+  185          * @return   0：读取成功
+  186          *
+  187          * @note     无
+  188          *
+  189          * @see      signed short lqdat[3];
+  190          * @see      MPU9250_Get_Gyroscope(&lqdat[0], &lqdat[1], &lqdat[2]);
+C251 COMPILER V5.57.0,  LQ_I2C_MPU9250                                                     03/01/21  14:57:48  PAGE 4   
+
+  191          *
+  192          * @date     2020/12/10 星期四
+  193          */
+  194          unsigned char MPU9250_Get_Gyroscope(signed short *gx,signed short *gy,signed short *gz)
+  195          {
+  196   1        unsigned char  buf[6],res;
+  197   1        res=MPU9250_Read_Len(MPU9250_ADDR,MPU_GYRO_XOUTH_REG,6,buf);
+  198   1        if(res==0)
+  199   1        {
+  200   2          *gx=((unsigned short)buf[0]<<8)|buf[1];
+  201   2          *gy=((unsigned short)buf[2]<<8)|buf[3];
+  202   2          *gz=((unsigned short)buf[4]<<8)|buf[5];
+  203   2        }
+  204   1        return res;
+  205   1      }
+  206          
+  207          
+  208          /**
+  209          * @brief    获取加速度值
+  210          *
+  211          * @param    ax,ay,az:陀螺仪x,y,z轴的原始读数(带符号)
+  212          *
+  213          * @return   0：读取成功
+  214          *
+  215          * @note     无
+  216          *
+  217          * @see      signed short lqdat[3];
+  218          * @see      MPU9250_Get_Accelerometer(&lqdat[0], &lqdat[1], &lqdat[2]);
+  219          *
+  220          * @date     2020/12/10 星期四
+  221          */
+  222          unsigned char MPU9250_Get_Accelerometer(signed short *ax,signed short *ay,signed short *az)
+  223          {
+  224   1        unsigned char  buf[6],res;
+  225   1        res=MPU9250_Read_Len(MPU9250_ADDR,MPU_ACCEL_XOUTH_REG,6,buf);
+  226   1        if(res==0)
+  227   1        {
+  228   2          *ax=((unsigned short)buf[0]<<8)|buf[1];
+  229   2          *ay=((unsigned short)buf[2]<<8)|buf[3];
+  230   2          *az=((unsigned short)buf[4]<<8)|buf[5];
+  231   2        }
+  232   1        return res;
+  233   1      }
+  234          
+  235          
+  236          /**
+  237          * @brief    获取磁力计值
+  238          *
+  239          * @param    mx,my,mz:磁力计仪x,y,z轴的原始读数(带符号)
+  240          *
+  241          * @return   0：读取成功
+  242          *
+  243          * @note     无
+  244          *
+  245          * @see      signed short lqdat[3];
+  246          * @see      MPU9250_Get_Magnetometer(&lqdat[0], &lqdat[1], &lqdat[2]);
+  247          *
+  248          * @date     2020/12/15 星期二
+  249          */
+  250          unsigned char MPU9250_Get_Magnetometer(short *mx,short *my,short *mz)
+  251          {
+  252   1        
+  253   1        unsigned char  buf[6],res;
+  254   1        res=MPU9250_Read_Len(AK8963_ADDR,MPU_MAG_XOUTL_REG,6,buf);
+  255   1        if(res==0)
+  256   1        {
+C251 COMPILER V5.57.0,  LQ_I2C_MPU9250                                                     03/01/21  14:57:48  PAGE 5   
+
+  257   2          *mx=((unsigned short)buf[1]<<8)|buf[0];
+  258   2          *my=((unsigned short)buf[3]<<8)|buf[2];
+  259   2          *mz=((unsigned short)buf[5]<<8)|buf[4];
+  260   2        }
+  261   1        //MPU9250_Write_Byte(AK8963_ADDR,MPU_MAG_CNTL1_REG,0X11);
+  262   1        MPU9250_Read_Byte(AK8963_ADDR,MPU_MAG_ST2_REG);
+  263   1        return res;
+  264   1      }
+  265          
+  266          /**
+  267          * @brief    获取 加速度值 角速度值
+  268          *
+  269          * @param    ax,ay,az:陀螺仪x,y,z轴的原始读数(带符号)
+  270          * @param    gx,gy,gz:陀螺仪x,y,z轴的原始读数(带符号)
+  271          *
+  272          * @return   0：读取成功
+  273          *
+  274          * @note     无
+  275          *
+  276          * @see      signed short lqdat[6];
+  277          * @see      MPU9250_Get_Raw_data(&lqdat[0], &lqdat[1], &lqdat[2],&lqdat[3], &lqdat[4], &lqdat[5]);
+  278          *
+  279          * @date     2020/12/10 星期四
+  280          */
+  281          unsigned char MPU9250_Get_Raw_data(signed short *ax,signed short *ay,signed short *az,signed short *gx,si
+             -gned short *gy,signed short *gz)
+  282          {
+  283   1        unsigned char  buf[14],res;
+  284   1        res=MPU9250_Read_Len(MPU9250_ADDR,MPU_ACCEL_XOUTH_REG,14,buf);
+  285   1        if(res==0)
+  286   1        {
+  287   2          *ax=((unsigned short)buf[0]<<8)|buf[1];
+  288   2          *ay=((unsigned short)buf[2]<<8)|buf[3];
+  289   2          *az=((unsigned short)buf[4]<<8)|buf[5];
+  290   2          *gx=((unsigned short)buf[8]<<8)|buf[9];
+  291   2          *gy=((unsigned short)buf[10]<<8)|buf[11];
+  292   2          *gz=((unsigned short)buf[12]<<8)|buf[13];
+  293   2        }
+  294   1        return res;
+  295   1      }
+  296          
+  297          /**
+  298          * @brief    IIC 连续写
+  299          *
+  300          * @param    addr:器件地址
+  301          * @param    reg :要写入的寄存器地址
+  302          * @param    len :要写入的长度
+  303          * @param    buf :写入到的数据存储区
+  304          *
+  305          * @return   0 ：写入成功
+  306          *
+  307          * @note     底层驱动 移植时需要修改
+  308          *
+  309          * @see      unsigned char buf[14];
+  310          * @see      MPU9250_Write_Len(MPU9250_ADDR,MPU_ACCEL_XOUTH_REG,14,buf);
+  311          *
+  312          * @date     2020/12/10 星期四
+  313          */
+  314          unsigned char MPU9250_Write_Len(unsigned char addr,unsigned char reg,unsigned char len,unsigned char *buf
+             -)
+  315          {
+  316   1        return IIC_WriteMultByteToSlave(addr<<1, reg, len, buf);
+  317   1      }
+  318          
+  319          
+  320          /**
+C251 COMPILER V5.57.0,  LQ_I2C_MPU9250                                                     03/01/21  14:57:48  PAGE 6   
+
+  321          * @brief    IIC 连续读
+  322          *
+  323          * @param    addr:器件地址
+  324          * @param    reg :要读取的寄存器地址
+  325          * @param    len :要读取的长度
+  326          * @param    buf :读取到的数据存储区
+  327          *
+  328          * @return   0 ：读取成功
+  329          *
+  330          * @note     底层驱动 移植时需要修改
+  331          *
+  332          * @see      unsigned char buf[14];
+  333          * @see      MPU9250_Read_Len(MPU9250_ADDR,MPU_ACCEL_XOUTH_REG,14,buf);
+  334          *
+  335          * @date     2020/12/10 星期四
+  336          */
+  337          unsigned char MPU9250_Read_Len(unsigned char addr,unsigned char reg,unsigned char len,unsigned char *buf)
+  338          {
+  339   1        return IIC_ReadMultByteFromSlave(addr<<1, reg, len, buf);
+  340   1      }
+  341          
+  342          
+  343          
+  344          /**
+  345          * @brief    IIC 写一个寄存器
+  346          *
+  347          * @param    addr  :器件地址
+  348          * @param    reg   :寄存器地址
+  349          * @param    value :要写入的值
+  350          *
+  351          * @return   0 ：读取成功
+  352          *
+  353          * @note     底层驱动 移植时需要修改
+  354          *
+  355          * @see      MPU9250_Write_Byte(MPU9250_ADDR,MPU_SAMPLE_RATE_REG,1);
+  356          *
+  357          * @date     2020/12/10 星期四
+  358          */
+  359          unsigned char MPU9250_Write_Byte(unsigned char addr,unsigned char reg,unsigned char value)
+  360          {
+  361   1        return IIC_WriteByteToSlave(addr<<1, reg, value);
+  362   1      }
+  363          
+  364          
+  365          /**
+  366          * @brief    IIC 读一个寄存器
+  367          *
+  368          * @param    addr  :器件地址
+  369          * @param    reg   :寄存器地址
+  370          *
+  371          * @return   读取的值
+  372          *
+  373          * @note     底层驱动 移植时需要修改
+  374          *
+  375          * @see      MPU9250_Read_Byte(MPU9250_ADDR,WHO_AM_I);
+  376          *
+  377          * @date     2020/12/10 星期四
+  378          */
+  379          unsigned char MPU9250_Read_Byte(unsigned char addr,unsigned char reg)
+  380          {
+  381   1        unsigned char value[1];
+  382   1        IIC_ReadByteFromSlave(addr<<1, reg, &value[0]);
+  383   1        return value[0];
+  384   1      }
+  385          
+  386          // 通过加速度计获取绝对坐标
+C251 COMPILER V5.57.0,  LQ_I2C_MPU9250                                                     03/01/21  14:57:48  PAGE 7   
+
+  387          float MPU9250_Get_Angle(short accx, short accy, short accz, char choose)
+  388          {
+  389   1        double temp;
+  390   1        float res = 0;
+  391   1        switch(choose)
+  392   1        {
+  393   2        case 0 ://与自然x轴的角度
+  394   2          temp = (float)accx / sqrt( (accy * accy + accz * accz) );
+  395   2          res = atan(temp);
+  396   2          break;
+  397   2        case 1 ://与自然y轴的角度
+  398   2          temp = (float)accy / sqrt((accx * accx + accz * accz));
+  399   2          res = atan(temp);
+  400   2          break;
+  401   2        case 2 ://与自然z轴的角度
+  402   2          temp = (float)accz / sqrt(accx * accx + accy * accy);
+  403   2          res = atan(temp);
+  404   2          break;
+  405   2        }
+  406   1        return res * 1800 / 3.1415;
+  407   1      }
+  408          
+  409          
+  410          
+  411          //测试程序
+  412          //单位为0.1毫米每秒
+  413          void Test_MPU9250(void)
+  414          {
+  415   1        char txt[30];
+  416   1        short aacx, aacy, aacz;
+  417   1        short gyrox, gyroy, gyroz;
+  418   1        short magx, magy, magz; 
+  419   1        
+  420   1        MPU9250_Set_LPF(10);  
+  421   1        //UART_PutStr(//UART0,"LQ MPU9250 Test\r\n");
+  422   1        MPU9250_Init(); 
+  423   1        
+  424   1        while(1)
+  425   1        {
+  426   2          MPU9250_Get_Raw_data(&aacx,&aacy,&aacz,&gyrox,&gyroy,&gyroz);   //得到加速度传感器数据
+  427   2          MPU9250_Get_Magnetometer(&magx, &magy, &magz);
+  428   2          sprintf((char*)txt,"ax:%06d",aacx);
+  429   2          OLED_P6x8Str(0,2,txt);
+  430   2          sprintf((char*)txt,"ay:%06d",aacy);
+  431   2          OLED_P6x8Str(0,3,txt);
+  432   2          sprintf((char*)txt,"az:%06d",aacz);
+  433   2          OLED_P6x8Str(0,4,txt);
+  434   2          sprintf((char*)txt,"gx:%06d",gyrox);
+  435   2          OLED_P6x8Str(0,5,txt);
+  436   2          sprintf((char*)txt,"gy:%06d",gyroy);
+  437   2          OLED_P6x8Str(0,6,txt);
+  438   2          sprintf((char*)txt,"gz:%06d",gyroz);
+  439   2          OLED_P6x8Str(0,7,txt);
+  440   2          /*
+  441   2          ////UART_PutBuff(//UART0, ch, 12);
+  442   2          ANO_DT_sendOnebyte_int16(0xF1, (short)aacx-450);
+  443   2          ANO_DT_sendOnebyte_int16(0xF2, (short)aacy-140);
+  444   2          ANO_DT_sendOnebyte_int16(0xF3, (short)aacz);
+  445   2          ANO_DT_sendOnebyte_int16(0xF4, (short)gyrox);
+  446   2          ANO_DT_sendOnebyte_int16(0xF5, (short)gyroy);
+  447   2          ANO_DT_sendOnebyte_int16(0xF6, (short)gyroz);
+  448   2          */
+  449   2        }
+  450   1      }
+  451          
+  452          
+C251 COMPILER V5.57.0,  LQ_I2C_MPU9250                                                     03/01/21  14:57:48  PAGE 8   
+
+  453          
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =      1581     ------
+  ecode size           =    ------     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =    ------        138
+  xdata-const size     =    ------     ------
+  edata size           =    ------     ------
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =        48     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

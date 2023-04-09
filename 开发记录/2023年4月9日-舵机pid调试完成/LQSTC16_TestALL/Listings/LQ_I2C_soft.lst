@@ -1,0 +1,459 @@
+C251 COMPILER V5.60.0,  LQ_I2C_soft                                                        09/04/23  11:30:28  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE LQ_I2C_soft
+OBJECT MODULE PLACED IN .\Objects\LQ_I2C_soft.obj
+COMPILER INVOKED BY: F:\MDK\C251\BIN\C251.EXE LQlib\driver\LQ_I2C_soft.c LARGE INTR2 BROWSE INCDIR(.\user;.\LQlib\app;.\
+                    -LQlib\driver) DEBUG PRINT(.\Listings\LQ_I2C_soft.lst) TABS(2) OBJECT(.\Objects\LQ_I2C_soft.obj) 
+
+stmt  level    source
+
+    1          
+    2          #include "include.h"
+    3          /*LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
+    4          ¡¾Æ½    Ì¨¡¿±±¾©ÁúÇñÖÇÄÜ¿Æ¼¼TC264DAºËÐÄ°å
+    5          ¡¾±à    Ð´¡¿ZYF/chiusir
+    6          ¡¾E-mail  ¡¿chiusir@163.com
+    7          ¡¾Èí¼þ°æ±¾¡¿V1.1 °æÈ¨ËùÓÐ£¬µ¥Î»Ê¹ÓÃÇëÏÈÁªÏµÊÚÈ¨
+    8          ¡¾×îºó¸üÐÂ¡¿2020Äê10ÔÂ28ÈÕ
+    9          ¡¾Ïà¹ØÐÅÏ¢²Î¿¼ÏÂÁÐµØÖ·¡¿
+   10          ¡¾Íø    Õ¾¡¿http://www.lqist.cn
+   11          ¡¾ÌÔ±¦µêÆÌ¡¿http://longqiu.taobao.com
+   12          ------------------------------------------------
+   13          ¡¾dev.env.¡¿AURIX Development Studio1.2.2¼°ÒÔÉÏ°æ±¾
+   14          ¡¾Target ¡¿ TC264DA/TC264D
+   15          ¡¾Crystal¡¿ 20.000Mhz
+   16          ¡¾SYS PLL¡¿ 200MHz
+   17          ________________________________________________________________
+   18          »ùÓÚiLLD_1_0_1_11_0µ×²ã³ÌÐò,
+   19          
+   20          Ê¹ÓÃÀý³ÌµÄÊ±ºò£¬½¨Òé²ÉÓÃÃ»ÓÐ¿Õ¸ñµÄÓ¢ÎÄÂ·¾¶£¬
+   21          ³ýÁËCIFÎªTC264DA¶ÀÓÐÍâ£¬ÆäËüµÄ´úÂë¼æÈÝTC264D
+   22          ±¾¿âÄ¬ÈÏ³õÊ¼»¯ÁËEMEM£º512K£¬Èç¹ûÓÃ»§Ê¹ÓÃTC264D£¬×¢ÊÍµôEMEM_InitConfig()³õÊ¼»¯º¯Êý¡£
+   23          ¹¤³ÌÏÂ\Libraries\iLLD\TC26B\Tricore\Cpu\CStart\IfxCpu_CStart0.cµÚ164ÐÐ×óÓÒ¡£
+   24          QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ*/
+   25          
+   26          #include "include.h"
+   27          
+   28          /*************************************************************************
+   29          *  º¯ÊýÃû³Æ£ºIICÑÓÊ±
+   30          *  ¹¦ÄÜËµÃ÷£ºADC³õÊ¼»¯º¯Êý
+   31          *  ²ÎÊýËµÃ÷£ºus      £º  ÑÓÊ±Ê±¼ä
+   32          *  º¯Êý·µ»Ø£ºÎÞ
+   33          *  ÐÞ¸ÄÊ±¼ä£º2020Äê3ÔÂ10ÈÕ
+   34          *  Ó¦ÓÃ¾ÙÀý£ºiic_delay(1);  //¼òµ¥µÄÑÓÊ±
+   35          *  ÄÚ²¿µ÷ÓÃ ÐÞ¸ÄÕâÀï¿ÉÒÔµ÷ÕûIICËÙÂÊ
+   36          *************************************************************************/
+   37          void iic_delay()
+   38          {
+   39   1        /* 200MHz ÏµÍ³Ê±ÖÓÏÂ Ä£ÄâIICËÙ¶ÈÎª 400Khz */
+   40   1        
+   41   1        unsigned char  i = 0;
+   42   1        for(i = 0; i < 30; i++) //ÐÞ¸ÄÕâÀï¿ÉÒÔµ÷ÕûIICËÙÂÊ
+   43   1        {
+   44   2          ; /* delay */
+   45   2        }
+   46   1      }
+   47          
+   48          /*************************************************************************
+   49          *  º¯ÊýÃû³Æ£ºvoid IIC_Init(void)
+   50          *  ¹¦ÄÜËµÃ÷£ºÄ£ÄâIIC³õÊ¼»¯
+   51          *  ²ÎÊýËµÃ÷£ºÎÞ
+   52          *  º¯Êý·µ»Ø£ºÎÞ
+   53          *  ÐÞ¸ÄÊ±¼ä£º2020Äê3ÔÂ10ÈÕ
+   54          *  Ó¦ÓÃ¾ÙÀý£ºIIC_Init();  //Ä£ÄâIIC³õÊ¼»¯ IIC¹Ü½ÅÔÚLQ_SOFTI2C.hÖÐ¶¨Òå
+   55          *************************************************************************/
+   56          void IIC_Init(void)
+   57          {     
+   58   1          IIC_SCL_INIT;
+C251 COMPILER V5.60.0,  LQ_I2C_soft                                                        09/04/23  11:30:28  PAGE 2   
+
+   59   1          IIC_SDA_INIT;
+   60   1          IIC_SCL_H; 
+   61   1          IIC_SDA_H;
+   62   1      }
+   63          
+   64          /*************************************************************************
+   65          *  º¯ÊýÃû³Æ£ºvoid IIC_Start(void)
+   66          *  ¹¦ÄÜËµÃ÷£ºÄ£ÄâIICÆðÊ¼ÐÅºÅ
+   67          *  ²ÎÊýËµÃ÷£ºÎÞ
+   68          *  º¯Êý·µ»Ø£ºÎÞ
+   69          *  ÐÞ¸ÄÊ±¼ä£º2020Äê3ÔÂ10ÈÕ
+   70          *  Ó¦ÓÃ¾ÙÀý£ºIIC_Start();
+   71          *************************************************************************/
+   72          void IIC_Start(void)
+   73          {
+   74   1        SDA_OUT;   //sdaÏßÊä³ö 
+   75   1        IIC_SDA_H;  
+   76   1        IIC_SCL_H;
+   77   1        iic_delay();
+   78   1        iic_delay();
+   79   1        iic_delay();
+   80   1        iic_delay();
+   81   1        iic_delay();
+   82   1        IIC_SDA_L; //START:when CLK is high,DATA change form high to low 
+   83   1        iic_delay();
+   84   1        iic_delay();
+   85   1        iic_delay();
+   86   1        IIC_SCL_L; //Ç¯×¡I2C×ÜÏß£¬×¼±¸·¢ËÍ»ò½ÓÊÕÊý¾Ý 
+   87   1      }
+   88          
+   89          
+   90          /*************************************************************************
+   91          *  º¯ÊýÃû³Æ£ºvoid IIC_Stop(void)
+   92          *  ¹¦ÄÜËµÃ÷£ºÄ£ÄâIICÍ£Ö¹ÐÅºÅ
+   93          *  ²ÎÊýËµÃ÷£ºÎÞ
+   94          *  º¯Êý·µ»Ø£ºÎÞ
+   95          *  ÐÞ¸ÄÊ±¼ä£º2020Äê3ÔÂ10ÈÕ
+   96          *  Ó¦ÓÃ¾ÙÀý£ºIIC_Stop();
+   97          *************************************************************************/
+   98          void IIC_Stop(void)
+   99          {
+  100   1        SDA_OUT; //sdaÏßÊä³ö
+  101   1        IIC_SCL_L;
+  102   1        IIC_SDA_L; //STOP:when CLK is high DATA change form low to high
+  103   1          iic_delay();
+  104   1        iic_delay();
+  105   1        iic_delay();
+  106   1        IIC_SCL_H; 
+  107   1          iic_delay();
+  108   1        iic_delay();
+  109   1        iic_delay();
+  110   1        IIC_SDA_H; //·¢ËÍI2C×ÜÏß½áÊøÐÅºÅ
+  111   1          iic_delay();                  
+  112   1      }
+  113          
+  114          
+  115          /*************************************************************************
+  116          *  º¯ÊýÃû³Æ£ºunsigned char IIC_WaitAck(void)
+  117          *  ¹¦ÄÜËµÃ÷£ºÄ£ÄâIICµÈ´ýÓ¦´ðÐÅºÅ
+  118          *  ²ÎÊýËµÃ÷£ºÎÞ
+  119          *  º¯Êý·µ»Ø£º1£¬½ÓÊÕÓ¦´ðÊ§°Ü    0£¬½ÓÊÕÓ¦´ð³É¹¦
+  120          *  ÐÞ¸ÄÊ±¼ä£º2020Äê3ÔÂ10ÈÕ
+  121          *  Ó¦ÓÃ¾ÙÀý£ºÄÚ²¿µ÷ÓÃ ÓÐÐ§Ó¦´ð£º´Ó»úµÚ9¸ö SCL=0 Ê± SDA ±»´Ó»úÀ­µÍ,²¢ÇÒ SCL = 1Ê± SDAÒÀÈ»ÎªµÍ
+  122          *************************************************************************/
+  123          unsigned char IIC_WaitAck(void)
+  124          {
+C251 COMPILER V5.60.0,  LQ_I2C_soft                                                        09/04/23  11:30:28  PAGE 3   
+
+  125   1        unsigned char  ucErrTime=0;
+  126   1        SDA_IN; //SDAÉèÖÃÎªÊäÈë  £¨´Ó»ú¸øÒ»¸öµÍµçÆ½×öÎªÓ¦´ð£© 
+  127   1        IIC_SDA_H;iic_delay();     
+  128   1        IIC_SCL_H;iic_delay();   
+  129   1        while(IIC_SDA_READ)
+  130   1        {
+  131   2          ucErrTime++;
+  132   2          if(ucErrTime>100)
+  133   2          {
+  134   3            IIC_Stop();
+  135   3            return 1;
+  136   3          }
+  137   2        }
+  138   1        IIC_SCL_L; //Ê±ÖÓÊä³ö0     
+  139   1        return 0;  
+  140   1      } 
+  141          
+  142          /*************************************************************************
+  143          *  º¯ÊýÃû³Æ£ºvoid IIC_Ack(void)
+  144          *  ¹¦ÄÜËµÃ÷£ºÄ£ÄâIIC²úÉúACKÓ¦´ð
+  145          *  ²ÎÊýËµÃ÷£ºÎÞ
+  146          *  º¯Êý·µ»Ø£ºÎÞ
+  147          *  ÐÞ¸ÄÊ±¼ä£º2020Äê3ÔÂ10ÈÕ
+  148          *  Ó¦ÓÃ¾ÙÀý£ºÄÚ²¿µ÷ÓÃ Ö÷»ú½ÓÊÕÍêÒ»¸ö×Ö½ÚÊý¾Ýºó£¬Ö÷»ú²úÉúµÄACKÍ¨Öª´Ó»úÒ»¸ö×Ö½ÚÊý¾ÝÒÑÕýÈ·½ÓÊÕ
+  149          *************************************************************************/
+  150          void IIC_Ack(void)
+  151          {
+  152   1        IIC_SCL_L;
+  153   1        SDA_OUT;
+  154   1        IIC_SDA_L;
+  155   1        iic_delay();
+  156   1        iic_delay();
+  157   1        iic_delay();
+  158   1        IIC_SCL_H;
+  159   1        iic_delay();
+  160   1        iic_delay();
+  161   1        iic_delay();
+  162   1        IIC_SCL_L;
+  163   1      }
+  164          
+  165          
+  166          /*************************************************************************
+  167          *  º¯ÊýÃû³Æ£ºvoid IIC_NAck(void)
+  168          *  ¹¦ÄÜËµÃ÷£ºÄ£ÄâIIC²»²úÉúACKÓ¦´ð
+  169          *  ²ÎÊýËµÃ÷£ºÎÞ
+  170          *  º¯Êý·µ»Ø£ºÎÞ
+  171          *  ÐÞ¸ÄÊ±¼ä£º2020Äê3ÔÂ10ÈÕ
+  172          *  Ó¦ÓÃ¾ÙÀý£ºÄÚ²¿µ÷ÓÃ Ö÷»ú½ÓÊÕÍê×îºóÒ»¸ö×Ö½ÚÊý¾Ýºó£¬Ö÷»ú²úÉúµÄNACKÍ¨Öª´Ó»ú·¢ËÍ½áÊø£¬ÊÍ·ÅSDA,ÒÔ±ãÖ÷»ú²úÉúÍ
+             -£Ö¹ÐÅºÅ
+  173          *************************************************************************/
+  174          void IIC_NAck(void)
+  175          {
+  176   1        IIC_SCL_L;
+  177   1        SDA_OUT;
+  178   1        IIC_SDA_H;
+  179   1        iic_delay();
+  180   1        iic_delay();
+  181   1        iic_delay();
+  182   1        IIC_SCL_H;
+  183   1        iic_delay();
+  184   1        iic_delay();
+  185   1        iic_delay();
+  186   1        IIC_SCL_L;
+  187   1      }                      
+  188          
+  189          
+C251 COMPILER V5.60.0,  LQ_I2C_soft                                                        09/04/23  11:30:28  PAGE 4   
+
+  190          /*************************************************************************
+  191          *  º¯ÊýÃû³Æ£ºvoid IIC_SendByte(unsigned char data_t)
+  192          *  ¹¦ÄÜËµÃ÷£ºÄ£ÄâIIC·¢ËÍÒ»¸ö×Ö½Ú
+  193          *  ²ÎÊýËµÃ÷£ºdata   :  ·¢ËÍµÄ×Ö½Ú
+  194          *  º¯Êý·µ»Ø£ºÎÞ
+  195          *  ÐÞ¸ÄÊ±¼ä£º2020Äê3ÔÂ10ÈÕ
+  196          *  Ó¦ÓÃ¾ÙÀý£ºIIC_SendByte(0x12);
+  197          *************************************************************************/
+  198          void IIC_SendByte(unsigned char data_t)
+  199          {                        
+  200   1          unsigned char  t;
+  201   1          SDA_OUT;      
+  202   1          IIC_SCL_L; //À­µÍÊ±ÖÓ¿ªÊ¼Êý¾Ý´«Êä
+  203   1          for(t=0;t<8;t++)
+  204   1          {   
+  205   2      //        IIC_SDA_READ = data_t&0x80; 
+  206   2              if(data_t&0x80)
+  207   2              {
+  208   3                  IIC_SDA_H;
+  209   3              }
+  210   2              else 
+  211   2              {
+  212   3                  IIC_SDA_L;
+  213   3              }
+  214   2              
+  215   2              IIC_SCL_H;;
+  216   2          iic_delay();
+  217   2              data_t<<=1;
+  218   2              iic_delay();
+  219   2          iic_delay();
+  220   2              IIC_SCL_L;   
+  221   2          iic_delay();    
+  222   2          }
+  223   1          iic_delay();
+  224   1      }    
+  225          
+  226          
+  227          /*************************************************************************
+  228          *  º¯ÊýÃû³Æ£ºunsigned char IIC_ReadByte(unsigned char ack)
+  229          *  ¹¦ÄÜËµÃ÷£ºÄ£ÄâIIC¶ÁÈ¡Ò»¸ö×Ö½Ú
+  230          *  ²ÎÊýËµÃ÷£ºack=1 Ê±£¬Ö÷»úÊý¾Ý»¹Ã»½ÓÊÕÍê ack=0 Ê±Ö÷»úÊý¾ÝÒÑÈ«²¿½ÓÊÕÍê³É
+  231          *  º¯Êý·µ»Ø£º½ÓÊÕµ½µÄ×Ö½Ú
+  232          *  ÐÞ¸ÄÊ±¼ä£º2020Äê3ÔÂ10ÈÕ
+  233          *  Ó¦ÓÃ¾ÙÀý£ºIC_ReadByte(0x12);
+  234          *************************************************************************/
+  235          unsigned char IIC_ReadByte(unsigned char ack)
+  236          {
+  237   1        unsigned char  i,receive=0;
+  238   1        SDA_IN; //SDAÉèÖÃÎªÊäÈëÄ£Ê½ µÈ´ý½ÓÊÕ´Ó»ú·µ»ØÊý¾Ý
+  239   1          for(i=0;i<8;i++ )
+  240   1        {
+  241   2              IIC_SCL_L; 
+  242   2          iic_delay();
+  243   2          iic_delay();
+  244   2          iic_delay();
+  245   2              IIC_SCL_H;
+  246   2              receive<<=1;
+  247   2              if(IIC_SDA_READ)receive++; //´Ó»ú·¢ËÍµÄµçÆ½
+  248   2              iic_delay();
+  249   2          }          
+  250   1          if(ack)
+  251   1              IIC_Ack(); //·¢ËÍACK 
+  252   1          else
+  253   1              IIC_NAck(); //·¢ËÍnACK  
+  254   1          return receive;
+  255   1      }
+C251 COMPILER V5.60.0,  LQ_I2C_soft                                                        09/04/23  11:30:28  PAGE 5   
+
+  256          
+  257          /*************************************************************************
+  258          *  º¯ÊýÃû³Æ£ºvoid ADC_init(void)
+  259          *  ¹¦ÄÜËµÃ÷£ºÄ£ÄâIIC¶ÁÈ¡Ö¸¶¨Éè±¸ Ö¸¶¨¼Ä´æÆ÷µÄÒ»¸öÖµ
+  260          *  ²ÎÊýËµÃ÷£º
+  261            * @param    I2C_Addr  Ä¿±êÉè±¸µØÖ·
+  262            * @param    reg       Ä¿±ê¼Ä´æÆ÷
+  263            * @param    buf       ´æ·Å¶Á³ö×Ö½Ú
+  264          *  º¯Êý·µ»Ø£º1Ê§°Ü 0³É¹¦
+  265          *  ÐÞ¸ÄÊ±¼ä£º2020Äê3ÔÂ10ÈÕ
+  266          *  Ó¦ÓÃ¾ÙÀý£ºIIC_ReadByteFromSlave(0xD0, 0x75, &data);   //¶Á IICµØÖ·Îª 0xD0Æ÷¼þ£¨MPU6050£©¼Ä´æÆ÷0x75
+  267          *************************************************************************/
+  268          unsigned char IIC_ReadByteFromSlave(unsigned char I2C_Addr,unsigned char reg,unsigned char *buf)
+  269          {
+  270   1        IIC_Start();  
+  271   1        IIC_SendByte(I2C_Addr);  //·¢ËÍ´Ó»úµØÖ·
+  272   1        if(IIC_WaitAck()) //Èç¹û´Ó»úÎ´Ó¦´ðÔòÊý¾Ý·¢ËÍÊ§°Ü
+  273   1        {
+  274   2          IIC_Stop();
+  275   2          return 1;
+  276   2        }
+  277   1        IIC_SendByte(reg); //·¢ËÍ¼Ä´æÆ÷µØÖ·
+  278   1        IIC_WaitAck();    
+  279   1        
+  280   1        IIC_Start();
+  281   1        I2C_Addr++;
+  282   1        IIC_SendByte(I2C_Addr); //½øÈë½ÓÊÕÄ£Ê½         
+  283   1        IIC_WaitAck();
+  284   1        *buf=IIC_ReadByte(0);    
+  285   1          IIC_Stop(); //²úÉúÒ»¸öÍ£Ö¹Ìõ¼þ
+  286   1        return 0;
+  287   1      }
+  288           
+  289          
+  290          /*************************************************************************
+  291          *  º¯ÊýÃû³Æ£ºvoid ADC_init(void)
+  292          *  ¹¦ÄÜËµÃ÷£ºÄ£ÄâIICÐ´Ö¸¶¨Éè±¸ Ö¸¶¨¼Ä´æÆ÷µÄÒ»¸öÖµ
+  293          *  ²ÎÊýËµÃ÷£º
+  294            * @param    I2C_Addr  Ä¿±êÉè±¸µØÖ·
+  295            * @param    reg       Ä¿±ê¼Ä´æÆ÷
+  296            * @param    data      Ð´ÈëµÄÊý¾Ý
+  297          *  º¯Êý·µ»Ø£º1Ê§°Ü 0³É¹¦
+  298          *  ÐÞ¸ÄÊ±¼ä£º2020Äê3ÔÂ10ÈÕ
+  299          *  Ó¦ÓÃ¾ÙÀý£ºIIC_ReadByteFromSlave(0xD0, 0X6B, 0X80);   //IICµØÖ·Îª 0xD0Æ÷¼þ£¨MPU6050£©¼Ä´æÆ÷0x6B Ð´Èë0x8
+             -0
+  300          *************************************************************************/
+  301          unsigned char IIC_WriteByteToSlave(unsigned char I2C_Addr,unsigned char reg,unsigned char data_t)
+  302          {
+  303   1        IIC_Start();
+  304   1        IIC_SendByte(I2C_Addr); //·¢ËÍ´Ó»úµØÖ·
+  305   1        if(IIC_WaitAck())
+  306   1        {
+  307   2          IIC_Stop();
+  308   2          return 1; //´Ó»úµØÖ·Ð´ÈëÊ§°Ü
+  309   2        }
+  310   1        IIC_SendByte(reg); //·¢ËÍ¼Ä´æÆ÷µØÖ·
+  311   1          IIC_WaitAck();    
+  312   1        IIC_SendByte(data_t); 
+  313   1        if(IIC_WaitAck())
+  314   1        {
+  315   2          IIC_Stop(); 
+  316   2          return 1; //Êý¾ÝÐ´ÈëÊ§°Ü
+  317   2        }
+  318   1        IIC_Stop(); //²úÉúÒ»¸öÍ£Ö¹Ìõ¼þ
+  319   1          
+  320   1          //return 1; //status == 0;
+C251 COMPILER V5.60.0,  LQ_I2C_soft                                                        09/04/23  11:30:28  PAGE 6   
+
+  321   1        return 0;
+  322   1      }
+  323          
+  324          /*************************************************************************
+  325          *  º¯ÊýÃû³Æ£ºunsigned char IIC_ReadMultByteFromSlave(unsigned char dev, unsigned char reg, unsigned char 
+             -length, unsigned char *data_t)
+  326          *  ¹¦ÄÜËµÃ÷£ºÄ£ÄâIIC¶ÁÈ¡Ö¸¶¨Éè±¸ Ö¸¶¨¼Ä´æÆ÷µÄn¸öÖµ
+  327          *  ²ÎÊýËµÃ÷£º
+  328            * @param    dev       Ä¿±êÉè±¸µØÖ·
+  329            * @param    reg       Ä¿±ê¼Ä´æÆ÷
+  330            * @param    length    ¶ÁÈ¡³¤¶È
+  331            * @param    data      ´æ·Å¶Á³öÊý¾Ý
+  332          *  º¯Êý·µ»Ø£º1Ê§°Ü 0³É¹¦
+  333          *  ÐÞ¸ÄÊ±¼ä£º2020Äê3ÔÂ10ÈÕ
+  334          *  Ó¦ÓÃ¾ÙÀý£ºIIC_ReadByteFromSlave(0xD0, 0X3B, 14, &data);   //¶Á 14¸ö×Ö½Ú
+  335          *************************************************************************/
+  336          unsigned char IIC_ReadMultByteFromSlave(unsigned char dev, unsigned char reg, unsigned char length, unsig
+             -ned char *data_t)
+  337          {
+  338   1          unsigned char  count = 0;
+  339   1        unsigned char  temp;
+  340   1        IIC_Start();
+  341   1        IIC_SendByte(dev); //·¢ËÍ´Ó»úµØÖ·
+  342   1        if(IIC_WaitAck())
+  343   1        {
+  344   2          IIC_Stop(); 
+  345   2          return 1; //´Ó»úµØÖ·Ð´ÈëÊ§°Ü
+  346   2        }
+  347   1        IIC_SendByte(reg); //·¢ËÍ¼Ä´æÆ÷µØÖ·
+  348   1          IIC_WaitAck();    
+  349   1        IIC_Start();
+  350   1        dev++;
+  351   1        IIC_SendByte(dev); //½øÈë½ÓÊÕÄ£Ê½ 
+  352   1        IIC_WaitAck();
+  353   1          for(count=0;count<length;count++)
+  354   1        {
+  355   2          if(count!=(length-1))
+  356   2                  temp = IIC_ReadByte(1); //´øACKµÄ¶ÁÊý¾Ý
+  357   2          else  
+  358   2                  temp = IIC_ReadByte(0); //×îºóÒ»¸ö×Ö½ÚNACK
+  359   2              
+  360   2          data_t[count] = temp;
+  361   2        }
+  362   1          IIC_Stop(); //²úÉúÒ»¸öÍ£Ö¹Ìõ¼þ
+  363   1          //return count;
+  364   1          return 0;
+  365   1      }
+  366          
+  367          /*************************************************************************
+  368          *  º¯ÊýÃû³Æ£ºunsigned char IIC_WriteMultByteToSlave(unsigned char dev, unsigned char reg, unsigned char l
+             -ength, unsigned char* data_t)
+  369          *  ¹¦ÄÜËµÃ÷£ºÄ£ÄâIICÐ´Ö¸¶¨Éè±¸ Ö¸¶¨¼Ä´æÆ÷µÄn¸öÖµ
+  370          *  ²ÎÊýËµÃ÷£º
+  371            * @param    dev       Ä¿±êÉè±¸µØÖ·
+  372            * @param    reg       Ä¿±ê¼Ä´æÆ÷
+  373            * @param    length    Ð´Èë³¤¶È
+  374            * @param    data      ´æ·ÅÐ´ÈëÊý¾Ý
+  375          *  º¯Êý·µ»Ø£º 1Ê§°Ü 0³É¹¦
+  376          *  ÐÞ¸ÄÊ±¼ä£º2020Äê3ÔÂ10ÈÕ
+  377          *  Ó¦ÓÃ¾ÙÀý£ºIIC_WriteMultByteToSlave(0xD0, 0X6B, 1, 0X80);   //Ïò¼Ä´æÆ÷0x6BÐ´Èë0x80
+  378          *************************************************************************/
+  379          unsigned char IIC_WriteMultByteToSlave(unsigned char dev, unsigned char reg, unsigned char length, unsign
+             -ed char* data_t)
+  380          {
+  381   1          
+  382   1        unsigned char  count = 0;
+C251 COMPILER V5.60.0,  LQ_I2C_soft                                                        09/04/23  11:30:28  PAGE 7   
+
+  383   1        IIC_Start();
+  384   1        IIC_SendByte(dev); //·¢ËÍ´Ó»úµØÖ·
+  385   1        if(IIC_WaitAck())
+  386   1        {
+  387   2          IIC_Stop();
+  388   2          return 1; //´Ó»úµØÖ·Ð´ÈëÊ§°Ü
+  389   2        }
+  390   1        IIC_SendByte(reg); //·¢ËÍ¼Ä´æÆ÷µØÖ·
+  391   1          IIC_WaitAck();    
+  392   1        for(count=0;count<length;count++)
+  393   1        {
+  394   2          IIC_SendByte(data_t[count]); 
+  395   2          if(IIC_WaitAck()) //Ã¿Ò»¸ö×Ö½Ú¶¼ÒªµÈ´Ó»úÓ¦´ð
+  396   2          {
+  397   3            IIC_Stop();
+  398   3            return 1; //Êý¾ÝÐ´ÈëÊ§°Ü
+  399   3          }
+  400   2        }
+  401   1        IIC_Stop(); //²úÉúÒ»¸öÍ£Ö¹Ìõ¼þ
+  402   1          
+  403   1        return 0;
+  404   1      }
+  405          
+  406          
+  407          
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =       682     ------
+  ecode size           =    ------     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =    ------         13
+  xdata-const size     =    ------     ------
+  edata size           =    ------     ------
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =    ------     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

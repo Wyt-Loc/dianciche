@@ -1,0 +1,1 @@
+"LQlib\driver\ANO_DT.c" LARGE INTR2 BROWSE INCDIR(.\user;.\LQlib\app;.\LQlib\driver) DEBUG PRINT(.\Listings\ANO_DT.lst) TABS (2) OBJECT(.\Objects\ANO_DT.obj)

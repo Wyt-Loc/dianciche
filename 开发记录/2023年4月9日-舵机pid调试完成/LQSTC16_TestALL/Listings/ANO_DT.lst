@@ -1,0 +1,195 @@
+C251 COMPILER V5.60.0,  ANO_DT                                                             08/04/23  17:40:23  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE ANO_DT
+OBJECT MODULE PLACED IN .\Objects\ANO_DT.obj
+COMPILER INVOKED BY: F:\MDK\C251\BIN\C251.EXE LQlib\driver\ANO_DT.c LARGE INTR2 BROWSE INCDIR(.\user;.\LQlib\app;.\LQlib
+                    -\driver) DEBUG PRINT(.\Listings\ANO_DT.lst) TABS(2) OBJECT(.\Objects\ANO_DT.obj) 
+
+stmt  level    source
+
+    1          /*LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
+    2          【平    台】北京龙邱智能科技STC16核心板
+    3          【编    写】chiusir
+    4          【E-mail  】chiusir@163.com
+    5          【软件版本】V1.1 版权所有，单位使用请先联系授权
+    6          【最后更新】2021年1月25日
+    7          【相关信息参考下列地址】
+    8          【网    站】http://www.lqist.cn
+    9          【淘宝店铺】http://longqiu.taobao.com
+   10          ------------------------------------------------
+   11          【IDE】STC16
+   12          【Target 】 C251Keil5.57及以上
+   13          【SYS PLL】 30MHz使用内部晶振
+   14          =================================================================
+   15          STC16相关配套视频：
+   16          龙邱科技B站网址：https://space.bilibili.com/95313236
+   17          STC16环境下载参考视频： https://www.bilibili.com/video/BV1gy4y1p7T1/
+   18          STC16一体板子介绍视频： https://www.bilibili.com/video/BV1Jy4y1e7R4/
+   19          =================================================================
+   20          下载时, 选择时钟 30MHZ (用户可自行修改频率).
+   21          STC16F初次下载:先用IRCBND=0，ISP界面设置为24M，
+   22          芯片最后一行2038...然后IRCBND=0，下载频率为30M；
+   23          芯片最后一行2010...或者IRCBND=1，下载频率为30M；
+   24          官方出库批次不同，略有差异，好用为准！！！
+   25          QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ
+   26          
+   27          配合匿名地面站上位机
+   28          
+   29          QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ*/
+   30          #include <LQ_UART.h>
+   31          #include <ANO_DT.h>
+   32          
+   33          //使用匿名4.3上位机协议
+   34          /////////////////////////////////////////////////////////////////////////////////////
+   35          //数据拆分宏定义，在发送大于1字节的数据类型时，比如int16、float等，需要把数据拆分成单独字节进行发送
+   36          #define BYTE0(dwTemp)       ( *( (char *)(&dwTemp)    ) )     /*!< uint32_t 数据拆分 byte0  */
+   37          #define BYTE1(dwTemp)       ( *( (char *)(&dwTemp) + 1) )     /*!< uint32_t 数据拆分 byte1  */
+   38          #define BYTE2(dwTemp)       ( *( (char *)(&dwTemp) + 2) )     /*!< uint32_t 数据拆分 byte2  */
+   39          #define BYTE3(dwTemp)       ( *( (char *)(&dwTemp) + 3) )     /*!< uint32_t 数据拆分 byte3  */
+   40          
+   41          /*!
+   42            * @brief    Send_Data函数是协议中所有发送数据功能使用到的发送函数
+   43            *
+   44            * @param    dataToSend   :   要发送的数据首地址
+   45            * @param    length       :   要发送的数据长度
+   46            *
+   47            * @return   无
+   48            *
+   49            * @note     移植时，用户应根据自身应用的情况，根据使用的通信方式，实现此函数
+   50            *
+   51            * @see      内部调用
+   52            *
+   53            * @date     2019/5/28 星期二
+   54            */
+   55          void ANO_DT_Send_Data(unsigned char *dataToSend , unsigned short length)
+   56          {
+   57   1      
+   58   1          /**使用串口正常发送数据，大概需要1.5ms*/
+C251 COMPILER V5.60.0,  ANO_DT                                                             08/04/23  17:40:23  PAGE 2   
+
+   59   1        //UART4_PutBuff(dataToSend, length);     //可以修改不同的串口发送数据
+   60   1      
+   61   1      }
+*** WARNING C47 IN LINE 55 OF LQlib\driver\ANO_DT.c: 'dataToSend': unreferenced parameter
+*** WARNING C47 IN LINE 55 OF LQlib\driver\ANO_DT.c: 'length': unreferenced parameter
+   62          
+   63          /*LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
+   64          【函数名】void UART4_SendInt16(unsigned char Function, int outData)
+   65          【功  能】匿名上位机用户协议，使用时占用MCU资源较大，跑车时不使用
+   66          【参数值】unsigned char Function, 功能字符
+   67          【参数值】int outData 数据
+   68          【返回值】无 
+   69          【作  者】chiusir
+   70          【最后更新】2021年1月22日 
+   71          【软件版本】V1.0
+   72          QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ*/
+   73          //void UART4_SendInt16(unsigned char Function, int outData)
+   74          //{
+   75          //  unsigned char sum;
+   76          //  unsigned char outData_H = ((unsigned short)outData)>>8;
+   77          //  unsigned char outData_L = (unsigned char)outData;
+   78          //  S4BUF = (0xAA);   // 头
+   79          //  delayus(90);
+   80          //  S4BUF = (0xAA);   // 头
+   81          //  delayus(90);
+   82          //  S4BUF = Function; // 功能
+   83          //  delayus(90);
+   84          //  S4BUF = (0x02);   // 数据为两个字节
+   85          //  delayus(90);
+   86          //  S4BUF = outData_H;// 数据高8位
+   87          //  delayus(90);
+   88          //  S4BUF = outData_L;// 数据低8位
+   89          //  delayus(90);
+   90          //  sum = 0xAA | 0xAA | 0xF1 | 0x02 | outData_H | outData_L;// 校验值
+   91          //  S4BUF = sum;
+   92          //  delayus(90);
+   93          //}
+   94          
+   95          void UART4_SendInt16(int outData1, int outData2, int outData3, int outData4, int outData5, int outData6, 
+             -int outData7, int outData8)
+   96          {
+   97   1        unsigned char sum;
+   98   1      //  unsigned char outData_H = ((unsigned short)outData)>>8;
+   99   1      //  unsigned char outData_L = (unsigned char)outData;
+  100   1        S4BUF = (0xAA);   // 头
+  101   1        delayus(90);
+  102   1        S4BUF = (0xAA);   // 头
+  103   1        delayus(90);
+  104   1        S4BUF = 0xf1; // 功能
+  105   1        delayus(90);
+  106   1        S4BUF = (0x0f);   // 数据为16个字节
+  107   1        delayus(90);
+  108   1        S4BUF = ((unsigned short)outData1)>>8;   // 数据高8位
+  109   1        delayus(90);
+  110   1        S4BUF = (unsigned char)outData1;         // 数据低8位
+  111   1        delayus(90);
+  112   1        S4BUF = ((unsigned short)outData2)>>8;
+  113   1        delayus(90);
+  114   1        S4BUF = (unsigned char)outData2;
+  115   1        delayus(90);
+  116   1        S4BUF = ((unsigned short)outData3)>>8;
+  117   1        delayus(90);
+  118   1        S4BUF = (unsigned char)outData3;
+  119   1        delayus(90);
+  120   1        S4BUF = ((unsigned short)outData4)>>8;
+  121   1        delayus(90);
+C251 COMPILER V5.60.0,  ANO_DT                                                             08/04/23  17:40:23  PAGE 3   
+
+  122   1        S4BUF = (unsigned char)outData4;
+  123   1        delayus(90);
+  124   1        S4BUF = ((unsigned short)outData5)>>8;
+  125   1        delayus(90);
+  126   1        S4BUF = (unsigned char)outData5;
+  127   1        delayus(90);
+  128   1        S4BUF = ((unsigned short)outData6)>>8;
+  129   1        delayus(90);
+  130   1        S4BUF = (unsigned char)outData6;
+  131   1        delayus(90);
+  132   1        S4BUF = ((unsigned short)outData7)>>8;
+  133   1        delayus(90);
+  134   1        S4BUF = (unsigned char)outData7;
+  135   1        delayus(90);
+  136   1        S4BUF = ((unsigned short)outData8)>>8;
+  137   1        delayus(90);
+  138   1        S4BUF = (unsigned char)outData8;
+  139   1        delayus(90);
+  140   1        
+  141   1        sum = 0xAA | 0xAA | 0xF1 | 0x02;// 校验值
+  142   1      //  sum = sum | ((unsigned short)outData1)>>8 | (unsigned char)outData1 | ((unsigned short)outData2)>>8 | 
+             -(unsigned char)outData2;
+  143   1      //  sum = sum | ((unsigned short)outData3)>>8 | (unsigned char)outData3 | ((unsigned short)outData4)>>8 | 
+             -(unsigned char)outData4;
+  144   1      //  sum = sum | ((unsigned short)outData5)>>8 | (unsigned char)outData5 | ((unsigned short)outData6)>>8 | 
+             -(unsigned char)outData6;
+  145   1      //  sum = sum | ((unsigned short)outData7)>>8 | (unsigned char)outData7 | ((unsigned short)outData8)>>8 | 
+             -(unsigned char)outData8;
+  146   1        S4BUF = sum;
+  147   1        delayus(90);
+  148   1      }
+  149          
+  150          
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =       308     ------
+  ecode size           =    ------     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =    ------         12
+  xdata-const size     =    ------     ------
+  edata size           =    ------     ------
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =    ------     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  2 WARNING(S),  0 ERROR(S)

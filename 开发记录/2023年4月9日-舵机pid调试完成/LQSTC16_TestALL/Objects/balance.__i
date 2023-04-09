@@ -1,0 +1,1 @@
+"LQlib\ddc\balance.c" LARGE INTR2 BROWSE INCDIR(.\user;.\LQlib\app;.\LQlib\ddc;.\LQlib\driver) DEBUG PRINT(.\Listings\balance.lst) TABS (2) OBJECT(.\Objects\balance.obj)

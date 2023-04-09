@@ -1,0 +1,139 @@
+C251 COMPILER V5.60.0,  LQ_GPIO_EXIT                                                       09/04/23  11:30:28  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE LQ_GPIO_EXIT
+OBJECT MODULE PLACED IN .\Objects\LQ_GPIO_EXIT.obj
+COMPILER INVOKED BY: F:\MDK\C251\BIN\C251.EXE LQlib\driver\LQ_GPIO_EXIT.c LARGE INTR2 BROWSE INCDIR(.\user;.\LQlib\app;.
+                    -\LQlib\driver) DEBUG PRINT(.\Listings\LQ_GPIO_EXIT.lst) TABS(2) OBJECT(.\Objects\LQ_GPIO_EXIT.obj) 
+
+stmt  level    source
+
+    1          /*LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
+    2          【平    台】北京龙邱智能科技自平衡摩托车
+    3          【编    写】chiusir
+    4          【E-mail  】chiusir@163.com
+    5          【软件版本】V1.1 版权所有，单位使用请先联系授权
+    6          【最后更新】2020年4月10日
+    7          【相关信息参考下列地址】
+    8          【网    站】http://www.lqist.cn
+    9          【淘宝店铺】http://longqiu.taobao.com
+   10          ------------------------------------------------
+   11          【dev.env.】Keil5.2及以上版本
+   12          【Target 】 STC16F40K
+   13          【SYS PLL】 36MHz
+   14          ------------------------------------------------
+   15          QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ*/
+   16          
+   17          #include "include.h"
+   18          
+   19          #define EX2 0x10
+   20          #define EX3 0x20
+   21          #define EX4 0x40
+   22          
+   23          u8  INT0_cnt, INT1_cnt;           //测试用的计数变量
+   24          u8  INT2_cnt, INT3_cnt, INT4_cnt; //测试用的计数变量
+   25          
+   26          /********************* INT0中断函数 *************************/
+   27          void INT0_int (void) interrupt 0  //进中断时已经清除标志
+   28          {
+   29   1          INT0_cnt++;                   //中断+1
+   30   1      }
+   31          
+   32          /********************* INT1中断函数 *************************/
+   33          void INT1_int (void) interrupt 2      //进中断时已经清除标志
+   34          {
+   35   1          INT1_cnt++; //中断+1
+   36   1      }
+   37          
+   38          /********************* INT2中断函数 *************************/
+   39          void INT2_int (void) interrupt 10 //进中断时已经清除标志
+   40          {//IMU用
+   41   1          INT2_cnt++;                   //中断+1
+   42   1        
+   43   1      }
+   44          
+   45          /********************* INT3中断函数 *************************/
+   46          void INT3_int (void) interrupt 11 //进中断时已经清除标志
+   47          {//干簧管用
+   48   1        INT3_cnt++;                   //中断+1
+   49   1        LED_Ctrl(LED1, RVS);          //LED闪烁;
+   50   1      }
+   51          
+   52          /********************* INT4中断函数 *************************/
+   53          void INT4_int (void) interrupt 16 //进中断时已经清除标志
+   54          {
+   55   1          INT4_cnt++;                   //中断+1
+   56   1      }
+   57          /*************************************************************************
+   58          *  函数名称：void LED_Init(void)
+C251 COMPILER V5.60.0,  LQ_GPIO_EXIT                                                       09/04/23  11:30:28  PAGE 2   
+
+   59          *  功能说明：GPIO初始化函数 LED灯所用PB10、PA3初始化
+   60          *  参数说明：无
+   61          *  函数返回：无
+   62          *  修改时间：2020年3月10日
+   63          *  备    注：
+   64          *************************************************************************/
+   65          void GPIO_EXIT_Init(void)
+   66          {                                
+   67   1          IE1 = 0;                      //外中断1标志位
+   68   1          IE0 = 0;                      //外中断0标志位    
+   69   1          EX0 = 0;                      //INT0 不使能
+   70   1          EX1 = 0;                      //INT1 不使能
+   71   1          IT0 = 1;                      //INT0 下降沿中断       
+   72   1      //  IT0 = 0;                      //INT0 上升,下降沿中断
+   73   1          IT1 = 1;                      //INT1 下降沿中断 
+   74   1      
+   75   1          //INT2, INT3, INT4 ，供需要时参考使用
+   76   1          //INTCLKO |= EX2;             //使能 INT2 下降沿中断 IMU模块
+   77   1          INTCLKO |= EX3;               //使能 INT3 下降沿中断 干簧管 
+   78   1          //INTCLKO |= EX4;             //使能 INT4 下降沿中断
+   79   1                                        
+   80   1          EA = 1;                       //允许总中断
+   81   1      }
+   82          
+   83          
+   84          /*************************************************************************
+   85          *  函数名称：void Test_GPIO_EXIT_Init(void)
+   86          *  功能说明：测试程序
+   87          *  参数说明：无
+   88          *  函数返回：无
+   89          *  修改时间：2020年3月10日
+   90          *  备    注：核心板上的LED灯闪烁
+   91          *************************************************************************/
+   92          void Test_GPIO_EXIT_Init(void)
+   93          {
+   94   1        char txt[32];
+   95   1        GPIO_LED_Init();        
+   96   1        GPIO_EXIT_Init();
+   97   1        OLED_CLS();                 //清屏  
+   98   1        while(1)
+   99   1        {
+  100   2          sprintf(txt,"INT3_cnt:%03d ",INT3_cnt);  //显示ADC11的值
+  101   2          OLED_P8x16Str(0,4,(u8*)txt);      
+  102   2        }
+  103   1       }
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =       244     ------
+  ecode size           =    ------     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =         5         32
+  xdata-const size     =    ------     ------
+  edata size           =    ------     ------
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =        15     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

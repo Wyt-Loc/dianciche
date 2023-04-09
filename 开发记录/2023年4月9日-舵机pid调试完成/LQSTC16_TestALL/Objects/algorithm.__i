@@ -1,0 +1,1 @@
+"LQlib\ddc\algorithm.c" LARGE INTR2 BROWSE INCDIR(.\user;.\LQlib\app;.\LQlib\ddc;.\LQlib\driver) DEBUG PRINT(.\Listings\algorithm.lst) TABS (2) OBJECT(.\Objects\algorithm.obj)

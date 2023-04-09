@@ -1,0 +1,139 @@
+C251 COMPILER V5.60.0,  LQ_I2C                                                             09/04/23  11:30:28  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE LQ_I2C
+OBJECT MODULE PLACED IN .\Objects\LQ_I2C.obj
+COMPILER INVOKED BY: F:\MDK\C251\BIN\C251.EXE LQlib\driver\LQ_I2C.c LARGE INTR2 BROWSE INCDIR(.\user;.\LQlib\app;.\LQlib
+                    -\driver) DEBUG PRINT(.\Listings\LQ_I2C.lst) TABS(2) OBJECT(.\Objects\LQ_I2C.obj) 
+
+stmt  level    source
+
+    1          
+    2          #include "include.h"
+    3          
+    4          sbit SDA = P3^3;
+    5          sbit SCL = P3^2;
+    6          #define SLAW    0xA2
+    7          #define SLAR    0xA3
+    8          
+    9          void I2C_init(void)
+   10          {
+   11   1          I2CCFG = 0xe0;                          //使能I2C主机模式
+   12   1          I2CMSST = 0x00;
+   13   1      }
+   14          
+   15          void Wait()
+   16          {
+   17   1          while (!(I2CMSST & 0x40));
+   18   1          I2CMSST &= ~0x40;
+   19   1      }
+   20          
+   21          void Start()
+   22          {
+   23   1          I2CMSCR = 0x01;                         //发送START命令
+   24   1          Wait();
+   25   1      }
+   26          
+   27          void SendData(char dat)
+   28          {
+   29   1          I2CTXD = dat;                           //写数据到数据缓冲区
+   30   1          I2CMSCR = 0x02;                         //发送SEND命令
+   31   1          Wait();
+   32   1      }
+   33          
+   34          void RecvACK()
+   35          {
+   36   1          I2CMSCR = 0x03;                         //发送读ACK命令
+   37   1          Wait();
+   38   1      }
+   39          
+   40          char RecvData()
+   41          {
+   42   1          I2CMSCR = 0x04;                         //发送RECV命令
+   43   1          Wait();
+   44   1          return I2CRXD;
+   45   1      }
+   46          
+   47          void SendACK()
+   48          {
+   49   1          I2CMSST = 0x00;                         //设置ACK信号
+   50   1          I2CMSCR = 0x05;                         //发送ACK命令
+   51   1          Wait();
+   52   1      }
+   53          
+   54          void SendNAK()
+   55          {
+   56   1          I2CMSST = 0x01;                         //设置NAK信号
+   57   1          I2CMSCR = 0x05;                         //发送ACK命令
+   58   1          Wait();
+C251 COMPILER V5.60.0,  LQ_I2C                                                             09/04/23  11:30:28  PAGE 2   
+
+   59   1      }
+   60          
+   61          void Stop()
+   62          {
+   63   1          I2CMSCR = 0x06;                         //发送STOP命令
+   64   1          Wait();
+   65   1      }
+   66          
+   67          void WriteNbyte(u8 addr, u8 *p, u8 number)  /*  WordAddress,First Data Address,Byte lenth   */
+   68          {
+   69   1          Start();                                //发送起始命令
+   70   1          SendData(SLAW);                         //发送设备地址+写命令
+   71   1          RecvACK();
+   72   1          SendData(addr);                         //发送存储地址
+   73   1          RecvACK();
+   74   1          do
+   75   1          {
+   76   2              SendData(*p++);
+   77   2              RecvACK();
+   78   2          }
+   79   1          while(--number);
+   80   1          Stop();                                 //发送停止命令
+   81   1      }
+   82          
+   83          void ReadNbyte(u8 addr, u8 *p, u8 number)   /*  WordAddress,First Data Address,Byte lenth   */
+   84          {
+   85   1          Start();                                //发送起始命令
+   86   1          SendData(SLAW);                         //发送设备地址+写命令
+   87   1          RecvACK();
+   88   1          SendData(addr);                         //发送存储地址
+   89   1          RecvACK();
+   90   1          Start();                                //发送起始命令
+   91   1          SendData(SLAR);                         //发送设备地址+读命令
+   92   1          RecvACK();
+   93   1          do
+   94   1          {
+   95   2              *p = RecvData();
+   96   2              p++;
+   97   2              if(number != 1) SendACK();          //send ACK
+   98   2          }
+   99   1          while(--number);
+  100   1          SendNAK();                              //send no ACK 
+  101   1          Stop();                                 //发送停止命令
+  102   1      }
+  103          /****************************/
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =       336     ------
+  ecode size           =    ------     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =    ------          4
+  xdata-const size     =    ------     ------
+  edata size           =    ------     ------
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =    ------     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

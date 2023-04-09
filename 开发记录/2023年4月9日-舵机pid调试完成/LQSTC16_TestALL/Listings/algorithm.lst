@@ -1,0 +1,148 @@
+C251 COMPILER V5.60.0,  algorithm                                                          08/04/23  17:35:02  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE algorithm
+OBJECT MODULE PLACED IN .\Objects\algorithm.obj
+COMPILER INVOKED BY: F:\MDK\C251\BIN\C251.EXE LQlib\ddc\algorithm.c LARGE INTR2 BROWSE INCDIR(.\user;.\LQlib\app;.\LQlib
+                    -\ddc;.\LQlib\driver) DEBUG PRINT(.\Listings\algorithm.lst) TABS(2) OBJECT(.\Objects\algorithm.obj) 
+
+stmt  level    source
+
+    1          /*LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
+    2          【平    台】北京龙邱智能科技自平衡摩托车
+    3          【编    写】chiusir
+    4          【E-mail  】chiusir@163.com
+    5          【软件版本】V1.1 版权所有，单位使用请先联系授权
+    6          【最后更新】2020年4月10日
+    7          【相关信息参考下列地址】
+    8          【网    站】http://www.lqist.cn
+    9          【淘宝店铺】http://longqiu.taobao.com
+   10          ------------------------------------------------
+   11          【dev.env.】Keil5.2及以上版本
+   12          【Target 】 STC16F40K
+   13          【SYS PLL】 36MHz
+   14          ------------------------------------------------
+   15          QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ*/
+   16          #include "algorithm.h"
+   17          #include "math.h"
+   18          
+   19          float data Angle;
+   20          float angle_dot;  
+   21          float Q_angle=0.001;// 过程噪声的协方差
+   22          float Q_gyro=0.003; //0.003 过程噪声的协方差 过程噪声的协方差为一个一行两列矩阵
+   23          float R_angle=0.5;  // 测量噪声的协方差 既测量偏差
+   24          float dt=0.005;     //                 
+   25          char   C_0 = 1;
+   26          float Q_bias, Angle_err;
+   27          float PCt_0, PCt_1, E;
+   28          float K_0, K_1, t_0, t_1;
+   29          float Pdot[4] ={0,0,0,0};
+   30          float PP[2][2] = { { 1, 0 },{ 0, 1 } };
+   31          
+   32          float ACCEL_Ang_Y=0;//反正切加速度计得到角度值
+   33          float GYRO_Ang_Y=0;  //积分角度
+   34          float ACC_GYRO_Ang_Y=0;//加速度计和陀螺仪数据融合
+   35          
+   36          
+   37          
+   38          /*************************************************************************
+   39          *  函数名称：void Kalman_Filter(float Accel,float Gyro) 
+   40          *  功能说明：简易卡尔曼滤波
+   41          *  参数说明：加速度、角速度
+   42          *  函数返回：无
+   43          *  修改时间：2020年4月20日
+   44          *  备    注：
+   45          *************************************************************************/
+   46          void Kalman_Filter(float Accel,float Gyro)    
+   47          {
+   48   1        Angle+=(Gyro - Q_bias) * dt; //先验估计
+   49   1        Pdot[0]=Q_angle - PP[0][1] - PP[1][0]; // Pk-先验估计误差协方差的微分
+   50   1        
+   51   1        Pdot[1]=-PP[1][1];
+   52   1        Pdot[2]=-PP[1][1];
+   53   1        Pdot[3]=Q_gyro;
+   54   1        PP[0][0] += Pdot[0] * dt;   // Pk-先验估计误差协方差微分的积分
+   55   1        PP[0][1] += Pdot[1] * dt;   // =先验估计误差协方差
+   56   1        PP[1][0] += Pdot[2] * dt;
+   57   1        PP[1][1] += Pdot[3] * dt;
+   58   1        
+C251 COMPILER V5.60.0,  algorithm                                                          08/04/23  17:35:02  PAGE 2   
+
+   59   1        Angle_err = Accel - Angle;  //zk-先验估计
+   60   1        
+   61   1        PCt_0 = C_0 * PP[0][0];
+   62   1        PCt_1 = C_0 * PP[1][0];
+   63   1        
+   64   1        E = R_angle + C_0 * PCt_0;
+   65   1        
+   66   1        K_0 = PCt_0 / E;
+   67   1        K_1 = PCt_1 / E;
+   68   1        
+   69   1        t_0 = PCt_0;
+   70   1        t_1 = C_0 * PP[0][1];
+   71   1        
+   72   1        PP[0][0] -= K_0 * t_0;         //后验估计误差协方差
+   73   1        PP[0][1] -= K_0 * t_1;
+   74   1        PP[1][0] -= K_1 * t_0;
+   75   1        PP[1][1] -= K_1 * t_1;
+   76   1        
+   77   1        Angle   += K_0 * Angle_err;    //后验估计
+   78   1        Q_bias  += K_1 * Angle_err;    //后验估计
+   79   1        angle_dot   = Gyro - Q_bias;   //输出值(后验估计)的微分=角速度
+   80   1      }
+   81          /*************************************************************************
+   82          *  函数名称：
+   83          *  功能说明：一阶互补滤波
+   84          *  参数说明：角度/加速度、角速度
+   85          *  函数返回：无
+   86          *  修改时间：2020年4月20日
+   87          *  备    注：
+   88          *************************************************************************/
+   89          float K1 =0.01; 
+   90          void Yijielvbo(float angle_m, float gyro_m)
+   91          {
+   92   1        Angle = K1 * angle_m + (1-K1) * (Angle + gyro_m / 16.4 * 0.005);
+   93   1      }
+   94          
+   95          //***************加速度计和陀螺仪数据融合*****************************//
+   96          void LQ_gyroY_accXZ(short a_x,short a_z,short g_y)      
+   97          { 
+   98   1        float data tmv;
+   99   1        float data zz;
+  100   1        float data xx;
+  101   1        zz=(float)a_z;
+  102   1        xx=(float)a_x;
+  103   1        
+  104   1        ACCEL_Ang_Y=atan2(zz,xx)*180.0/PI;//反正切加速度计得到角度值
+  105   1        
+  106   1        tmv= (float)g_y*0.00032;  //积分角度
+  107   1        GYRO_Ang_Y += tmv; //积分角度
+  108   1        tmv=(ACCEL_Ang_Y-GYRO_Ang_Y)*0.025;//融合系数  //0.025
+  109   1        ACC_GYRO_Ang_Y+=tmv;//融合系数  //0.025
+  110   1      }
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =       961     ------
+  ecode size           =    ------     ------
+  data size            =         4     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =       105     ------
+  xdata-const size     =    ------     ------
+  edata size           =    ------     ------
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+C251 COMPILER V5.60.0,  algorithm                                                          08/04/23  17:35:02  PAGE 3   
+
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =       120     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

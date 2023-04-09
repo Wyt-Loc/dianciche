@@ -1,0 +1,405 @@
+C251 COMPILER V5.60.0,  SEEKFREE_MPU6050                                                   06/04/23  23:11:21  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE SEEKFREE_MPU6050
+OBJECT MODULE PLACED IN .\Out_File\SEEKFREE_MPU6050.obj
+COMPILER INVOKED BY: F:\MDK\C251\BIN\C251.EXE ..\..\Libraries\seekfree_peripheral\SEEKFREE_MPU6050.c XSMALL INTR2 WARNIN
+                    -GLEVEL(3) BROWSE INCDIR(..\..\Libraries\libraries;..\..\Libraries\seekfree_libraries;..\..\Libraries\seekfree_peripheral
+                    -;..\CODE;..\USER\inc;..\USER\src) DEBUG PRINT(.\Out_File\SEEKFREE_MPU6050.lst) TABS(2) OBJECT(.\Out_File\SEEKFREE_MPU605
+                    -0.obj) 
+
+stmt  level    source
+
+    1          /********************************************************************************************************
+             -*************
+    2           * COPYRIGHT NOTICE
+    3           * Copyright (c) 2018,逐飞科技
+    4           * All rights reserved.
+    5           * 技术讨论QQ群：一群：179029047(已满)  二群：244861897
+    6           *
+    7           * 以下所有内容版权均属逐飞科技所有，未经允许不得用于商业用途，
+    8           * 欢迎各位使用并传播本程序，修改内容时必须保留逐飞科技的版权声明。
+    9           *
+   10           * @file          MPU6050
+   11           * @company       成都逐飞科技有限公司
+   12           * @author        逐飞科技(QQ3184284598)
+   13           * @version       查看doc内version文件 版本说明
+   14           * @Software    MDK FOR C251 V5.60
+   15           * @Target core   STC16F40K128
+   16           * @Taobao      https://seekfree.taobao.com/
+   17           * @date          2019-04-30
+   18           * @note    
+   19                    接线定义：
+   20                    ------------------------------------ 
+   21                      软件IIC
+   22                                  SCL                 查看SEEKFREE_IIC文件内的SEEKFREE_SCL宏定义
+   23                      SDA                 查看SEEKFREE_IIC文件内的SEEKFREE_SDA宏定义
+   24                    ------------------------------------ 
+   25           ********************************************************************************************************
+             -************/
+   26          
+   27          
+   28          
+   29          #include "SEEKFREE_MPU6050.h"
+   30          #include "zf_delay.h"
+   31          
+   32          
+   33          
+   34          int16 mpu6050_gyro_x,mpu6050_gyro_y,mpu6050_gyro_z;
+   35          int16 mpu6050_acc_x,mpu6050_acc_y,mpu6050_acc_z;
+   36          
+   37          
+   38          #define GET_MPU6050_SDA         MPU6050_SDA_PIN
+   39          #define MPU6050_SCL_LOW()           MPU6050_SCL_PIN = 0   //IO口输出低电平
+   40          #define MPU6050_SCL_HIGH()          MPU6050_SCL_PIN = 1   //IO口输出高电平  
+   41          #define MPU6050_SDA_LOW()           MPU6050_SDA_PIN = 0   //IO口输出低电平
+   42          #define MPU6050_SDA_HIGH()          MPU6050_SDA_PIN = 1   //IO口输出高电平
+   43          
+   44          #define ack 1      //主应答
+   45          #define no_ack 0   //从应答 
+   46          
+   47          //-------------------------------------------------------------------------------------------------------
+             -------------
+   48          //  @brief      模拟IIC延时
+   49          //  @return     void            
+   50          //  @since      v1.0
+   51          //  Sample usage:       如果IIC通讯失败可以尝试增加j的值
+   52          //-------------------------------------------------------------------------------------------------------
+             -------------
+C251 COMPILER V5.60.0,  SEEKFREE_MPU6050                                                   06/04/23  23:11:21  PAGE 2   
+
+   53          static void mpu6050_simiic_delay(void)
+   54          {
+   55   1          uint16 j=MPU6050_IIC_DELAY;   
+   56   1        while(j--);
+   57   1      }
+   58          
+   59          //内部使用，用户无需调用
+   60          static void mpu6050_simiic_start(void)
+   61          {
+   62   1        MPU6050_SDA_HIGH();
+   63   1        MPU6050_SCL_HIGH();
+   64   1        mpu6050_simiic_delay();
+   65   1        MPU6050_SDA_LOW();
+   66   1        mpu6050_simiic_delay();
+   67   1        MPU6050_SCL_LOW();
+   68   1      }
+   69          
+   70          //内部使用，用户无需调用
+   71          static void mpu6050_simiic_stop(void)
+   72          {
+   73   1        MPU6050_SDA_LOW();
+   74   1        MPU6050_SCL_LOW();
+   75   1        mpu6050_simiic_delay();
+   76   1        MPU6050_SCL_HIGH();
+   77   1        mpu6050_simiic_delay();
+   78   1        MPU6050_SDA_HIGH();
+   79   1        mpu6050_simiic_delay();
+   80   1      }
+   81          
+   82          //主应答(包含ack:SDA=0和no_ack:SDA=0)
+   83          //内部使用，用户无需调用
+   84          static void mpu6050_simiic_sendack(unsigned char ack_dat)
+   85          {
+   86   1          MPU6050_SCL_LOW();
+   87   1        mpu6050_simiic_delay();
+   88   1        if(ack_dat) MPU6050_SDA_LOW();
+   89   1          else      MPU6050_SDA_HIGH();
+   90   1      
+   91   1          MPU6050_SCL_HIGH();
+   92   1          mpu6050_simiic_delay();
+   93   1          MPU6050_SCL_LOW();
+   94   1          mpu6050_simiic_delay();
+   95   1      }
+   96          
+   97          
+   98          static int mpu6050_sccb_waitack(void)
+   99          {
+  100   1          MPU6050_SCL_LOW();
+  101   1      
+  102   1        mpu6050_simiic_delay();
+  103   1        
+  104   1        MPU6050_SCL_HIGH();
+  105   1          mpu6050_simiic_delay();
+  106   1        
+  107   1          if(GET_MPU6050_SDA)           //应答为高电平，异常，通信失败
+  108   1          {
+  109   2      
+  110   2              MPU6050_SCL_LOW();
+  111   2              return 0;
+  112   2          }
+  113   1      
+  114   1          MPU6050_SCL_LOW();
+  115   1        mpu6050_simiic_delay();
+  116   1          return 1;
+  117   1      }
+  118          
+C251 COMPILER V5.60.0,  SEEKFREE_MPU6050                                                   06/04/23  23:11:21  PAGE 3   
+
+  119          //字节发送程序
+  120          //发送c(可以是数据也可是地址)，送完后接收从应答
+  121          //不考虑从应答位
+  122          //内部使用，用户无需调用
+  123          static void mpu6050_send_ch(uint8 c)
+  124          {
+  125   1        uint8 i = 8;
+  126   1          while(i--)
+  127   1          {
+  128   2              if(c & 0x80)  MPU6050_SDA_HIGH();//SDA 输出数据
+  129   2              else      MPU6050_SDA_LOW();
+  130   2              c <<= 1;
+  131   2              mpu6050_simiic_delay();
+  132   2              MPU6050_SCL_HIGH();                //SCL 拉高，采集信号
+  133   2              mpu6050_simiic_delay();
+  134   2              MPU6050_SCL_LOW();                //SCL 时钟线拉低
+  135   2          }
+  136   1        mpu6050_sccb_waitack();
+  137   1      }
+  138          
+  139          
+  140          //字节接收程序
+  141          //接收器件传来的数据，此程序应配合|主应答函数|使用
+  142          //内部使用，用户无需调用
+  143          static uint8 mpu6050_read_ch(uint8 ack_x)
+  144          {
+  145   1          uint8 i;
+  146   1          uint8 c;
+  147   1          c=0;
+  148   1          MPU6050_SCL_LOW();
+  149   1          mpu6050_simiic_delay();
+  150   1          MPU6050_SDA_HIGH();             
+  151   1      
+  152   1          for(i=0;i<8;i++)
+  153   1          {
+  154   2              mpu6050_simiic_delay();
+  155   2              MPU6050_SCL_LOW();         //置时钟线为低，准备接收数据位
+  156   2              mpu6050_simiic_delay();
+  157   2              MPU6050_SCL_HIGH();         //置时钟线为高，使数据线上数据有效
+  158   2              mpu6050_simiic_delay();
+  159   2              c<<=1;
+  160   2              if(GET_MPU6050_SDA) 
+  161   2              {
+  162   3                  c+=1;   //读数据位，将接收的数据存c
+  163   3              }
+  164   2          }
+  165   1      
+  166   1        MPU6050_SCL_LOW();
+  167   1        mpu6050_simiic_delay();
+  168   1        mpu6050_simiic_sendack(ack_x);
+  169   1        
+  170   1          return c;
+  171   1      }
+  172          
+  173          
+  174          //-------------------------------------------------------------------------------------------------------
+             -------------
+  175          //  @brief      模拟IIC写数据到设备寄存器函数
+  176          //  @param      dev_add     设备地址(低七位地址)
+  177          //  @param      reg       寄存器地址
+  178          //  @param      dat       写入的数据
+  179          //  @return     void            
+  180          //  @since      v1.0
+  181          //  Sample usage:       
+  182          //-------------------------------------------------------------------------------------------------------
+             -------------
+C251 COMPILER V5.60.0,  SEEKFREE_MPU6050                                                   06/04/23  23:11:21  PAGE 4   
+
+  183          static void mpu6050_simiic_write_reg(uint8 dev_add, uint8 reg, uint8 dat)
+  184          {
+  185   1        mpu6050_simiic_start();
+  186   1          mpu6050_send_ch( (dev_add<<1) | 0x00);   //发送器件地址加写位
+  187   1        mpu6050_send_ch( reg );            //发送从机寄存器地址
+  188   1        mpu6050_send_ch( dat );            //发送需要写入的数据
+  189   1        mpu6050_simiic_stop();
+  190   1      }
+  191          
+  192          //-------------------------------------------------------------------------------------------------------
+             -------------
+  193          //  @brief      模拟IIC从设备寄存器读取数据
+  194          //  @param      dev_add     设备地址(低七位地址)
+  195          //  @param      reg       寄存器地址
+  196          //  @param      type      选择通信方式是IIC  还是 SCCB
+  197          //  @return     uint8     返回寄存器的数据      
+  198          //  @since      v1.0
+  199          //  Sample usage:       
+  200          //-------------------------------------------------------------------------------------------------------
+             -------------
+  201          uint8 mpu6050_simiic_read_reg(uint8 dev_add, uint8 reg)
+  202          {
+  203   1        uint8 dat;
+  204   1        mpu6050_simiic_start();
+  205   1          mpu6050_send_ch( (dev_add<<1) | 0x00);  //发送器件地址加写位
+  206   1        mpu6050_send_ch( reg );           //发送从机寄存器地址
+  207   1      
+  208   1        
+  209   1        mpu6050_simiic_start();
+  210   1        mpu6050_send_ch( (dev_add<<1) | 0x01);  //发送器件地址加读位
+  211   1        dat = mpu6050_read_ch(no_ack);          //读取数据
+  212   1        mpu6050_simiic_stop();
+  213   1        
+  214   1        return dat;
+  215   1      }
+  216          
+  217          //-------------------------------------------------------------------------------------------------------
+             -------------
+  218          //  @brief      模拟IIC读取多字节数据
+  219          //  @param      dev_add     设备地址(低七位地址)
+  220          //  @param      reg       寄存器地址
+  221          //  @param      dat_add     数据保存的地址指针
+  222          //  @param      num       读取字节数量
+  223          //  @param      type      选择通信方式是IIC  还是 SCCB
+  224          //  @return     uint8     返回寄存器的数据      
+  225          //  @since      v1.0
+  226          //  Sample usage:       
+  227          //-------------------------------------------------------------------------------------------------------
+             -------------
+  228          void mpu6050_simiic_read_regs(uint8 dev_add, uint8 reg, uint8 *dat_add, uint8 num)
+  229          {
+  230   1        mpu6050_simiic_start();
+  231   1          mpu6050_send_ch( (dev_add<<1) | 0x00);  //发送器件地址加写位
+  232   1        mpu6050_send_ch( reg );           //发送从机寄存器地址
+  233   1      
+  234   1        
+  235   1        mpu6050_simiic_start();
+  236   1        mpu6050_send_ch( (dev_add<<1) | 0x01);  //发送器件地址加读位
+  237   1          while(--num)
+  238   1          {
+  239   2              *dat_add = mpu6050_read_ch(ack); //读取数据
+  240   2              dat_add++;
+  241   2          }
+  242   1          *dat_add = mpu6050_read_ch(no_ack); //读取数据
+  243   1        mpu6050_simiic_stop();
+  244   1      }
+C251 COMPILER V5.60.0,  SEEKFREE_MPU6050                                                   06/04/23  23:11:21  PAGE 5   
+
+  245          
+  246          //-------------------------------------------------------------------------------------------------------
+             -------------
+  247          //  @brief      MPU6050自检函数
+  248          //  @param      NULL
+  249          //  @return     void          
+  250          //  @since      v1.0
+  251          //  Sample usage:       
+  252          //-------------------------------------------------------------------------------------------------------
+             -------------
+  253          static uint8 mpu6050_self1_check(void)
+  254          {
+  255   1          mpu6050_simiic_write_reg(MPU6050_DEV_ADDR, PWR_MGMT_1, 0x00); //解除休眠状态
+  256   1          mpu6050_simiic_write_reg(MPU6050_DEV_ADDR, SMPLRT_DIV, 0x07);   //125HZ采样率
+  257   1          if(0x07 != mpu6050_simiic_read_reg(MPU6050_DEV_ADDR, SMPLRT_DIV))
+  258   1          {
+  259   2          printf("mpu6050 init error.\r\n");
+  260   2          return 1;
+  261   2              //卡在这里原因有以下几点
+  262   2              //1 MPU6050坏了，如果是新的这样的概率极低
+  263   2              //2 接线错误或者没有接好
+  264   2              //3 可能你需要外接上拉电阻，上拉到3.3V
+  265   2          //4 可能没有调用模拟IIC的初始化函数
+  266   2          }
+  267   1      
+  268   1        return 0;
+  269   1      
+  270   1      }
+  271          
+  272          //-------------------------------------------------------------------------------------------------------
+             -------------
+  273          //  @brief      初始化MPU6050
+  274          //  @param      NULL
+  275          //  @return     void          
+  276          //  @since      v1.0
+  277          //  Sample usage:       
+  278          //-------------------------------------------------------------------------------------------------------
+             -------------
+  279          uint8 mpu6050_init(void)
+  280          {
+  281   1          delay_ms(100);                                   //上电延时
+  282   1      
+  283   1          if(mpu6050_self1_check())
+  284   1        {
+  285   2          return 1;
+  286   2        }
+  287   1          mpu6050_simiic_write_reg(MPU6050_DEV_ADDR, PWR_MGMT_1, 0x00); //解除休眠状态
+  288   1          mpu6050_simiic_write_reg(MPU6050_DEV_ADDR, SMPLRT_DIV, 0x07);   //125HZ采样率
+  289   1          mpu6050_simiic_write_reg(MPU6050_DEV_ADDR, MPU6050_CONFIG, 0x04);       //
+  290   1          mpu6050_simiic_write_reg(MPU6050_DEV_ADDR, GYRO_CONFIG, 0x18);  //2000
+  291   1          mpu6050_simiic_write_reg(MPU6050_DEV_ADDR, ACCEL_CONFIG, 0x10); //8g
+  292   1        mpu6050_simiic_write_reg(MPU6050_DEV_ADDR, User_Control, 0x00);
+  293   1          mpu6050_simiic_write_reg(MPU6050_DEV_ADDR, INT_PIN_CFG, 0x02);
+  294   1        return 0;
+  295   1      }
+  296          
+  297          
+  298          
+  299          //-------------------------------------------------------------------------------------------------------
+             -------------
+  300          //  @brief      获取MPU6050加速度计数据
+  301          //  @param      NULL
+  302          //  @return     void
+  303          //  @since      v1.0
+  304          //  Sample usage:       执行该函数后，直接查看对应的变量即可
+  305          //-------------------------------------------------------------------------------------------------------
+C251 COMPILER V5.60.0,  SEEKFREE_MPU6050                                                   06/04/23  23:11:21  PAGE 6   
+
+             -------------
+  306          void mpu6050_get_accdata(void)
+  307          {
+  308   1          uint8 dat[6];
+  309   1      
+  310   1          mpu6050_simiic_read_regs(MPU6050_DEV_ADDR, ACCEL_XOUT_H, dat, 6);  
+  311   1          mpu6050_acc_x = (int16)(((uint16)dat[0]<<8 | dat[1]));
+  312   1          mpu6050_acc_y = (int16)(((uint16)dat[2]<<8 | dat[3]));
+  313   1          mpu6050_acc_z = (int16)(((uint16)dat[4]<<8 | dat[5]));
+  314   1      }
+  315          
+  316          
+  317          //-------------------------------------------------------------------------------------------------------
+             -------------
+  318          //  @brief      获取MPU6050陀螺仪数据
+  319          //  @param      NULL
+  320          //  @return     void
+  321          //  @since      v1.0
+  322          //  Sample usage:       执行该函数后，直接查看对应的变量即可
+  323          //-------------------------------------------------------------------------------------------------------
+             -------------
+  324          void mpu6050_get_gyro(void)
+  325          {
+  326   1          uint8 dat[6];
+  327   1      
+  328   1          mpu6050_simiic_read_regs(MPU6050_DEV_ADDR, GYRO_XOUT_H, dat, 6);  
+  329   1          mpu6050_gyro_x = (int16)(((uint16)dat[0]<<8 | dat[1]));
+  330   1          mpu6050_gyro_y = (int16)(((uint16)dat[2]<<8 | dat[3]));
+  331   1          mpu6050_gyro_z = (int16)(((uint16)dat[4]<<8 | dat[5]));
+  332   1      }
+  333          
+  334          
+  335          
+  336          
+  337          
+  338          
+  339          
+  340          
+  341          
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =       638     ------
+  ecode size           =    ------     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =    ------     ------
+  xdata-const size     =    ------     ------
+  edata size           =        12         15
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =        22     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

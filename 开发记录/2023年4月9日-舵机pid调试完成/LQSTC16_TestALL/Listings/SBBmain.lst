@@ -1,0 +1,223 @@
+C251 COMPILER V5.57.0,  SBBmain                                                            28/12/20  14:41:32  PAGE 1   
+
+
+C251 COMPILER V5.57.0, COMPILATION OF MODULE SBBmain
+OBJECT MODULE PLACED IN .\Objects\SBBmain.obj
+COMPILER INVOKED BY: D:\Keil_v5\C251\BIN\C251.EXE user\SBB\SBBmain.c LARGE INTR2 BROWSE INCDIR(.\user;..\LQDDCdemo;.\use
+                    -r\SBB) DEBUG PRINT(.\Listings\SBBmain.lst) TABS(2) OBJECT(.\Objects\SBBmain.obj) 
+
+stmt  level    source
+
+    1          /*LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
+    2          【平    台】北京龙邱智能科技自平衡摩托车
+    3          【编    写】chiusir
+    4          【E-mail  】chiusir@163.com
+    5          【软件版本】V1.1 版权所有，单位使用请先联系授权
+    6          【最后更新】2020年4月10日
+    7          【相关信息参考下列地址】
+    8          【网    站】http://www.lqist.cn
+    9          【淘宝店铺】http://longqiu.taobao.com
+   10          ------------------------------------------------
+   11          【dev.env.】Keil5.2及以上版本
+   12          【Target 】 STC16F40K
+   13          【SYS PLL】 36MHz
+   14          ------------------------------------------------
+   15          调试过程：
+   16          1.开启主控板电源和驱动模块电源
+   17          2.手动将小车摆放到机械平衡位置
+   18          3.按下“走起”按键标定并启动小车
+   19          ------------------------------------------------
+   20          遥控需要用到蓝牙模块及APP
+   21          ‘L’--左转 Left
+   22          ‘R’--右转 Right
+   23          'A'--加速 Accelerating
+   24          ‘D’--减速 Deceleration
+   25          'P'--停车 Parking
+   26          'B'--默认蓝牙遥控 Bluetooth
+   27          'T'--电磁循迹 Trace
+   28          BluetoothSPP--APP的结束符设置为“其它”
+   29          QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ*/
+   30          #include "include.h"
+   31          
+   32          u8  Flag_Add,Flag_Dec,Flag_Left,Flag_Right;  //蓝牙遥控相关的变量
+   33          u8  Trace_BT=1;                              //蓝牙遥控还是线阵CCD循迹 1：默认，蓝牙遥控；0：电感循迹
+   34          u8  Flag_Stop=1,Flag_Show=0,Flag_Angle;      //停止标志位和 显示标志位 默认停止 显示打开
+   35          u8  delay_50,delay_flag,PID_Send,Flash_Send,Direction;//延时和调参等变量
+   36          short Encoder;                               //编码器的脉冲计数
+   37          short PWMMotor,PWMServo;                      //电机舵机PWM变量
+   38          short Velocity;                               //显示速度                              
+   39          float Angle_Balance,Gyro_Balance,Gyro_Turn; //平衡倾角 平衡陀螺仪 转向陀螺仪
+   40          float Show_Data_Mb;                         //全局显示变量，用于显示需要查看的数据
+   41          float Acceleration_Z;                       //Z轴加速度计  
+   42          float Balance_Kp=8.75,Balance_Kd=0.06,Balance_Ki=0.0,Velocity_Kp=0.6,Velocity_Ki=0.88;//PID参数   
+   43          float Balance_Kcf=0.05;                     //向心力计算系数
+   44          extern short gyro_x,gyro_y,gyro_z, accel_x,accel_y,accel_z, sensors;
+   45          
+   46          /**************************************************************************
+   47          函数功能：OLED显示
+   48          入口参数：无
+   49          返回  值：无
+   50          **************************************************************************/
+   51          void OLED_Show(void)
+   52          {
+   53   1        char txt[16];
+   54   1        short V=0;
+   55   1        //=============第一行显示小车模式===================//   
+   56   1        OLED_P6x8Str(10,0,(u8*)"LongQiu eMoto");    
+   57   1        //=============第2行显示小车模式====================//   
+   58   1        sprintf(txt,"%03d  %03d  0x%02X",LeftRightFlag,ForwardBackFlag,Uart4_Receive);
+C251 COMPILER V5.57.0,  SBBmain                                                            28/12/20  14:41:32  PAGE 2   
+
+   59   1        OLED_P6x8Str(20,1,(u8*)txt);      
+   60   1        //=============第三行===============================//  
+   61   1        sprintf(txt,"Encoder:%04d ",Encoder);
+   62   1        OLED_P6x8Str(0,2,(u8*)txt); 
+   63   1        //=============第四行===============================//
+   64   1        sprintf(txt,"PWMServo:%04d ",PWMServo);
+   65   1        OLED_P6x8Str(0,3,(u8*)txt);
+   66   1        //=============第五行显示电压=======================//  
+   67   1        V=ADC_Read(6)*4/5;  //10K和1K电阻分压 Voltage*3.3/4095*100*11
+   68   1        sprintf(txt,"Voltage:%02d.%02dV",V/100,V%100);
+   69   1        OLED_P6x8Str(0,4,(u8*)txt);
+   70   1        //=============第六行显示角度=======================//
+   71   1        sprintf(txt,"Angle:%04d  %03d ",(short)Angle_Balance,(short)Zhongzhi);
+   72   1        OLED_P6x8Str(0,5,(u8*)txt);
+   73   1        //=============第7行显示读取电感值==================//
+   74   1        //Show_TSL1401(1); 
+   75   1        //sprintf(txt,"AD0:%04d AD1:%04d ",LnowADC[0],LnowADC[1]);
+   76   1        //OLED_P6x8Str(0,6,(u8*)txt);
+   77   1        //=============第8行显示读取电感值==================//
+   78   1        sprintf(txt,"L:%04d R:%04d ",left,right);
+   79   1        OLED_P6x8Str(0,7,(u8*)txt);
+   80   1      }
+   81          void TestAndShow(void);
+   82          void TestAndShow(void)
+   83          {
+   84   1        char txt[16];
+   85   1        short V=0;
+   86   1        short aacx,aacy,aacz;         //加速度传感器原始数据
+   87   1        short gyrox,gyroy,gyroz;        //陀螺仪原始数据 
+   88   1        
+   89   1        //=============第一行显示小车模式===================//   
+   90   1        OLED_P6x8Str(10,0,(u8*)"LongQiu eMoto");    
+   91   1        //=============第2行显示小车模式====================//   
+   92   1        sprintf(txt,"%03d  %03d  0x%02X",LeftRightFlag,ForwardBackFlag,Uart4_Receive);
+   93   1        OLED_P6x8Str(20,1,(u8*)txt);      
+   94   1        //=============第三行===============================//  
+   95   1        Encoder=Read_Encoder(1);  
+   96   1        sprintf(txt,"Encoder:%04d ",Encoder);
+   97   1        OLED_P6x8Str(0,2,(u8*)txt); 
+   98   1        //=============第四行===============================//
+   99   1        sprintf(txt,"PWMServo:%04d ",PWMServo);
+  100   1        OLED_P6x8Str(0,3,(u8*)txt);
+  101   1        //=============第五行显示电压=======================//  
+  102   1        V=ADC_Read(6)*4/5;  //10K和1K电阻分压 Voltage*3.3/4095*100*11
+  103   1        sprintf(txt,"Voltage:%02d.%02dV",V/100,V%100);
+  104   1        OLED_P6x8Str(0,4,(u8*)txt);
+  105   1        //=============第六行显示角度=======================//
+  106   1        ICM_Get_Raw_data(&aacx,&aacy,&aacz,&gyrox,&gyroy,&gyroz); //得到加速度传感器数据  
+  107   1        LQ_gyroY_accXZ((short)aacx,(short)aacz,(short)gyroy);
+  108   1        Angle_Balance= 90.0-ACCEL_Ang_Y;        //===更新平衡倾角
+  109   1        sprintf(txt,"Angle:%04d  %03d ",(short)(90.0-ACCEL_Ang_Y),(short)Zhongzhi);
+  110   1        OLED_P6x8Str(0,5,(u8*)txt);
+  111   1        //=============第7行显示读取电感值==================//
+  112   1        //Show_TSL1401(1); 
+  113   1        //sprintf(txt,"AD0:%04d AD1:%04d ",LnowADC[0],LnowADC[1]);
+  114   1        //OLED_P6x8Str(0,6,(u8*)txt);
+  115   1        //=============第8行显示读取电感值==================//
+  116   1        sprintf(txt,"L:%04d R:%04d ",left,right);
+  117   1        OLED_P6x8Str(0,7,(u8*)txt);
+  118   1      }
+  119          /*************************************************************************
+  120          *  函数名称：
+  121          *  功能说明：
+  122          *  参数说明：无
+  123          *  函数返回：无
+  124          *  修改时间：2020年4月20日
+C251 COMPILER V5.57.0,  SBBmain                                                            28/12/20  14:41:32  PAGE 3   
+
+  125          *  备    注：
+  126          *************************************************************************/
+  127          void demo_sbb_car(void)
+  128          { 
+  129   1        OLED_CLS();                        //清屏 
+  130   1        MotorInit(MOTOR_FREQUENCY);        //=====初始化PWM 12.5KHZ，
+  131   1        MotorCtrl(100,0);
+  132   1        OLED_P6x8Str(0,2,"motor pwm ok");  //字符串显示 
+  133   1        
+  134   1        ServoInit(100);                    //=====初始化PWM100HZ驱动 舵机 
+  135   1        ServoCtrl(Servo_Center);           //舵机中值
+  136   1        OLED_P6x8Str(0,3,"servo pwm ok");  //字符串显示 
+  137   1        
+  138   1        Timer34EncInit();                   //=====编码器接口  
+  139   1        OLED_P6x8Str(0,4,"encoder ok");    //字符串显示 
+  140   1        
+  141   1        ADC_Init();                        //=====adc初始化   
+  142   1        OLED_P6x8Str(0,5,"ADC inti ok");   //字符串显示 
+  143   1        
+  144   1        ICM20689_Init();                   //=====ICM20689初始化  
+  145   1        OLED_P6x8Str(0,6,"LQ20689 ok");    //字符串显示 
+  146   1        
+  147   1        //DMP_Init();                      //=====初始化DMP  
+  148   1        Timer0_init();                     // 200hz--->  5ms,平衡车用
+  149   1        OLED_P6x8Str(0,7,"timer0 ok");     //字符串显示 
+  150   1        delayms(100);
+  151   1        //GPIO_EXIT_Init();                //=====P3.7干簧管停车中断
+  152   1        EnableInterrupts;
+  153   1        OLED_CLS();                        //清屏 
+  154   1        OLED_Show();  
+  155   1        while(1)
+  156   1        {   
+  157   2          TestAndShow();
+  158   2          if(KEY_Read(KEY1)==0)     //使用SBB APP和OLED显示屏
+  159   2          {  
+  160   3            OLED_Show();            //===显示屏打开     
+  161   3          }    
+  162   2          delayms(50);
+  163   2        } 
+  164   1      }
+  165          
+  166          
+  167          
+  168          
+  169          
+  170          
+  171          
+  172          
+  173          
+  174          
+  175          
+  176          
+  177          
+  178          
+  179          
+  180          //
+  181          
+  182          
+  183          
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =      1070     ------
+  ecode size           =    ------     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+C251 COMPILER V5.57.0,  SBBmain                                                            28/12/20  14:41:32  PAGE 4   
+
+  pdata size           =    ------     ------
+  xdata size           =        65         44
+  xdata-const size     =    ------     ------
+  edata size           =    ------     ------
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =       256     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

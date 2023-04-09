@@ -1,0 +1,165 @@
+C251 COMPILER V5.60.0,  LQ_GPIO_LED                                                        09/04/23  11:30:27  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE LQ_GPIO_LED
+OBJECT MODULE PLACED IN .\Objects\LQ_GPIO_LED.obj
+COMPILER INVOKED BY: F:\MDK\C251\BIN\C251.EXE LQlib\app\LQ_GPIO_LED.c LARGE INTR2 BROWSE INCDIR(.\user;.\LQlib\app;.\LQl
+                    -ib\driver) DEBUG PRINT(.\Listings\LQ_GPIO_LED.lst) TABS(2) OBJECT(.\Objects\LQ_GPIO_LED.obj) 
+
+stmt  level    source
+
+    1          /*LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
+    2          【平    台】北京龙邱智能科技自平衡摩托车
+    3          【编    写】chiusir
+    4          【E-mail  】chiusir@163.com
+    5          【软件版本】V1.1 版权所有，单位使用请先联系授权
+    6          【最后更新】2020年4月10日
+    7          【相关信息参考下列地址】
+    8          【网    站】http://www.lqist.cn
+    9          【淘宝店铺】http://longqiu.taobao.com
+   10          ------------------------------------------------
+   11          【dev.env.】Keil5.2及以上版本
+   12          【Target 】 STC16F40K
+   13          【SYS PLL】 36MHz
+   14          ------------------------------------------------
+   15          
+   16          QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ*/
+   17          
+   18          #include "include.h"
+   19          
+   20          
+   21          /*************************************************************************
+   22          *  函数名称：void LED_Init(void)
+   23          *  功能说明：GPIO初始化函数 LED灯所用PB10、PA3初始化
+   24          *  参数说明：无
+   25          *  函数返回：无
+   26          *  修改时间：2020年3月10日
+   27          *  备    注：
+   28          *************************************************************************/
+   29          void GPIO_LED_Init(void)
+   30          {
+   31   1          P2M1 &= 0xFE;
+   32   1          P2M1 |= 0x00;
+   33   1          P2M0 &= 0xFE;
+   34   1          P2M0 |= 0x01;   //设置为推挽输出
+   35   1        
+   36   1      }
+   37          
+   38          /*************************************************************************
+   39          *  函数名称：void LED_Ctrl(LEDn_e LEDno, LEDs_e sta)
+   40          *  功能说明：LED控制
+   41          *  参数说明：LEDn_e LEDno编号,LEDs_e sta状态亮/灭/翻转
+   42          *  函数返回：按键状态，0/1
+   43          *  修改时间：2020年3月10日
+   44          *  备    注：
+   45          *************************************************************************/
+   46          void LED_Ctrl(LEDn_e LEDno, LEDs_e sta)
+   47          {
+   48   1          switch(LEDno)
+   49   1          {
+   50   2          case LED0:
+   51   2            if(sta==ON)        LED0p=0;
+   52   2            else if(sta==OFF)  LED0p=1;
+   53   2            else if(sta==RVS) (LED0p)?(LED0p=0):(LED0p=1);
+   54   2          break;
+   55   2      
+   56   2          case LED1:
+   57   2            if(sta==ON)        LED1p=0;
+   58   2            else if(sta==OFF)  LED1p=1;
+C251 COMPILER V5.60.0,  LQ_GPIO_LED                                                        09/04/23  11:30:27  PAGE 2   
+
+   59   2            else if(sta==RVS) (LED1p)?(LED1p=0):(LED1p=1);
+   60   2          break;
+   61   2      
+   62   2          case LED2:
+   63   2            if(sta==ON)        LED2p=0;
+   64   2            else if(sta==OFF)  LED2p=1;
+   65   2            else if(sta==RVS) (LED2p)?(LED2p=0):(LED2p=1);
+   66   2          break;
+   67   2      
+   68   2          case LED3:
+   69   2            if(sta==ON)        LED3p=0;
+   70   2            else if(sta==OFF)  LED3p=1;
+   71   2            else if(sta==RVS) (LED3p)?(LED3p=0):(LED3p=1);
+   72   2          break;
+   73   2          case LEDALL:
+   74   2            if(sta==ON)
+   75   2            {
+   76   3              LED0p=0;
+   77   3              LED1p=0;
+   78   3              LED2p=0;
+   79   3              LED3p=0;
+   80   3            }
+   81   2            else if(sta==OFF)
+   82   2            {
+   83   3              LED0p=1;
+   84   3              LED1p=1;
+   85   3              LED2p=1;
+   86   3              LED3p=1;
+   87   3            }
+   88   2            else if(sta==RVS)
+   89   2            {
+   90   3              (LED0p)?(LED0p=0):(LED0p=1);
+   91   3              (LED1p)?(LED1p=0):(LED1p=1);
+   92   3              (LED2p)?(LED2p=0):(LED2p=1);
+   93   3              (LED3p)?(LED3p=0):(LED3p=1);
+   94   3            }
+   95   2          break;
+   96   2          default:
+   97   2          break;
+   98   2          }
+   99   1      }
+  100          /**************************************************************************
+  101          函数功能：LED闪烁
+  102          入口参数：闪烁频率 
+  103          返回  值：无
+  104          **************************************************************************/
+  105          void Led_Flash(u16 time)
+  106          {
+  107   1          static int temp;
+  108   1          if(0==time) LED0p=0;
+  109   1          else if(++temp>time)  LED0p=~LED0p,temp=0;
+  110   1      }
+  111          /*************************************************************************
+  112          *  函数名称：void Test_GPIO_LED(void)
+  113          *  功能说明：测试程序
+  114          *  参数说明：无
+  115          *  函数返回：无
+  116          *  修改时间：2020年3月10日
+  117          *  备    注：核心板上的LED灯闪烁--四个LED同时闪烁
+  118          *************************************************************************/
+  119          void Test_GPIO_LED(void)
+  120           {
+  121   1        GPIO_LED_Init();
+  122   1        while(1)
+  123   1        {
+  124   2          LED_Ctrl(LEDALL,RVS);        //LED同时闪烁
+C251 COMPILER V5.60.0,  LQ_GPIO_LED                                                        09/04/23  11:30:27  PAGE 3   
+
+  125   2          delayms(200);                //延时等待
+  126   2        }
+  127   1       }
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =       296     ------
+  ecode size           =    ------     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =         2     ------
+  xdata-const size     =    ------     ------
+  edata size           =    ------     ------
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =    ------     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,90 @@
+C251 COMPILER V5.60.0,  LQ_SPI_soft                                                        09/04/23  11:30:28  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE LQ_SPI_soft
+OBJECT MODULE PLACED IN .\Objects\LQ_SPI_soft.obj
+COMPILER INVOKED BY: F:\MDK\C251\BIN\C251.EXE LQlib\driver\LQ_SPI_soft.c LARGE INTR2 BROWSE INCDIR(.\user;.\LQlib\app;.\
+                    -LQlib\driver) DEBUG PRINT(.\Listings\LQ_SPI_soft.lst) TABS(2) OBJECT(.\Objects\LQ_SPI_soft.obj) 
+
+stmt  level    source
+
+    1          
+    2          #include "include.h"
+    3          
+    4          
+    5          /*************************************************************************
+    6          *  函数名称：void SPI_SoftReadWriteNbyte(u8 *lqbuff, u16 len)
+    7          *  功能说明：SPI读写数据及长度
+    8          *  参数说明：u8 *buf数据指针,u16 len长度
+    9          *  函数返回：
+   10          *  修改时间：2020年8月10日
+   11          *  备    注：   
+   12          *************************************************************************/
+   13          void Soft_SPI_ReadWriteNbyte(u8 *lqbuff, u16 len)
+   14          {
+   15   1        u8 i;
+   16   1        
+   17   1        SPI_CS_OUT = 0;
+   18   1        SPI_SCK_OUT= 1;
+   19   1        do
+   20   1        {
+   21   2          for(i = 0; i < 8; i++)
+   22   2          {
+   23   3            SPI_MOSI_OUT = ((*lqbuff) >= 0x80);
+   24   3            SPI_SCK_OUT= 0;
+   25   3            (*lqbuff) = (*lqbuff)<<1;      
+   26   3            
+   27   3            SPI_SCK_OUT= 1;
+   28   3            
+   29   3            (*lqbuff) |= SPI_MISO_IN;          
+   30   3          }
+   31   2          lqbuff++;
+   32   2        }while(--len);
+   33   1        SPI_CS_OUT = 1;
+   34   1      }
+   35          
+   36          /*************************************************************************
+   37          *  函数名称：void SPI_SoftInit(void)
+   38          *  功能说明：模拟SPI口初始化
+   39          *  参数说明：无
+   40          *  函数返回：无
+   41          *  修改时间：2020年8月10日
+   42          *  备    注：   
+   43          *************************************************************************/
+   44          void Soft_SPI_Init(void)
+   45          {
+   46   1        P2M1 = 0; P2M0 = 0;  //设置为准双向口
+   47   1        P2PU =0x3C;          //上拉
+   48   1      }
+   49          
+   50          
+   51          
+   52          //
+   53          
+   54          
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =        87     ------
+C251 COMPILER V5.60.0,  LQ_SPI_soft                                                        09/04/23  11:30:28  PAGE 2   
+
+  ecode size           =    ------     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =    ------     ------
+  xdata-const size     =    ------     ------
+  edata size           =    ------     ------
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =    ------     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

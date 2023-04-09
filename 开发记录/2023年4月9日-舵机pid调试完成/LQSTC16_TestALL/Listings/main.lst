@@ -1,0 +1,298 @@
+C251 COMPILER V5.60.0,  main                                                               09/04/23  13:54:39  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE main
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: F:\MDK\C251\BIN\C251.EXE user\main.c LARGE INTR2 BROWSE INCDIR(.\user;.\LQlib\app;.\LQlib\driver) D
+                    -EBUG PRINT(.\Listings\main.lst) TABS(2) OBJECT(.\Objects\main.obj) 
+
+stmt  level    source
+
+    1          
+    2          #include "include.h"
+    3          #include "PID.h"
+    4          
+    5          //PID结构体初始化
+    6          pid_param_t  pid_servor;
+    7          
+    8          
+    9          
+   10          //定义全局变量  电机控制  占空比设置  初始设为 20
+   11          // 满占空比为10M/12.5k=800
+   12          //PWM2_CLOCK  10000000 //10M
+   13          //占空比 = duty / 800 
+   14          //电机电压 =  电池电压 * 占空比
+   15          volatile int16_t Duty_Motor = 260;            // 电机占空比初始化
+   16          
+   17          //舵机占空比设置  占空比减 向右打角
+   18          //使用前设置舵机中值 测试 得 1675
+   19          volatile uint16_t Duty_Servor_Center = 1675;    // 舵机中值初始化
+   20          
+   21          
+   22          volatile short enc1;  // 左编码器值
+   23          volatile short enc2;  // 右编码器值
+   24          
+   25          
+   26          //线圈电感
+   27          int16_t ADC_Data[5];  //得到 线圈的感应电压
+   28          
+   29          //车在路中间时 的电感值  前中  前左  后左  后右  前右
+   30          static int16_t ADC_Center[5] = {2411, 1717, 2218, 2344, 1599};
+   31          
+   32          
+   33          /******************** 主函数 **************************/
+   34          void main(void)  
+   35          {   
+   36   1        
+   37   1        sysinit();                                //系统初始化
+   38   1        
+   39   1        GPIO_LED_Init();                          // LED 初始化
+   40   1        
+   41   1        //OLED_Init();                              // OLED显示屏初始化
+   42   1        
+   43   1        //Timer34EncInit();                         //编码器初始化
+   44   1        
+   45   1        MotorInit(MOTOR_FREQUENCY);               // 电机初始化
+   46   1        
+   47   1        ServoInit(100);                           // 第一个初始化舵机 保证车在启动时方向是对的
+   48   1                                                    // 舵机初始化，频率为100Hz  舵机中值 1675 
+   49   1        ServoCtrl(Duty_Servor_Center);                  // 设置舵机中值
+   50   1        
+   51   1        //UART1_config(1);                        // 使用定时器2做串口4的波特率生成时钟
+   52   1        OLED_Init();                            // OLED显示屏初始化
+   53   1        OLED_CLS();                             // 清屏 
+   54   1        OLED_P6x8Str(0, 0, "WytZnc");           // 显示字符
+   55   1        
+   56   1        PidInit_wz(&pid_servor);            //舵机PID初始化
+   57   1        
+   58   1        ADC_Init();
+C251 COMPILER V5.60.0,  main                                                               09/04/23  13:54:39  PAGE 2   
+
+   59   1       
+   60   1        //Timer1_init();                              //timer1初始化函数
+   61   1        //EA = 1;
+   62   1        delayms(1200);                            // 等待整车全部上电完成
+   63   1        MotorCtrl(0, Duty_Motor * 0.7);                 // 必须要 duty乘个系数  设置速度才能用  不然为电压为0要不就疯转
+   64   1        
+   65   1        while (1)
+   66   1        {
+   67   2          
+   68   2          Get_ADC_Data();
+   69   2          Servor_Control(ADC_Data);
+   70   2          //show_ADC_Data();
+   71   2      
+   72   2          /* 获取编码器值 */
+   73   2          // enc1 =  Read_Encoder(1);               // 左电机 母板上编码器1，小车前进为负值
+   74   2          // enc2 = -Read_Encoder(2);               // 右电机 母板上编码器2，小车后退为正值
+   75   2        }
+   76   1      }
+   77          
+   78          /***************************************************************
+   79          【函数名】void sysinit(void)  
+   80          【功  能】系统初始化 具体干啥看手册
+   81          【参数值】无
+   82          【返回值】无
+   83          ****************************************************************/
+   84          void sysinit(void)  
+   85          { 
+   86   1        WTST = 0; 
+   87   1        P_SW2 |= 0x80;  
+   88   1        IRCBAND=0;        //1：35M频段；0：24M频段
+   89   1        //IRTRIM =0;
+   90   1        //LIRTRIM=0;  
+   91   1        CLKDIV = 0;       //24MHz主频，分频设置
+   92   1        P_SW2 &= 0x7F;
+   93   1        RSTCFG|=1<<4;           //P5.4复位管脚
+   94   1        P0M1 =0x40; P0M0 = 0;   //设置为准双向口,P0.6  0.7为输入口，编码器用
+   95   1        P0PU =0x40;             //P0.6  0.7使能内部4.1K上拉电阻
+   96   1        P1M1 = 0;   P1M0 = 0;   //设置为准双向口
+   97   1        P3M1 = 0;   P3M0 = 0;   //设置为准双向口
+   98   1        P4M1 = 0;   P4M0 = 0;   //设置为准双向口
+   99   1        P5M1 = 0;   P5M0 = 0;   //设置为准双向口
+  100   1        P6M1 = 0;   P6M0 = 0;   //设置为准双向口
+  101   1        P7M1 =0xFF; P7M0 = 0;   //设置为准双向口 
+  102   1        P7PU =0xFF;             //设置为准双向口,P7.0123为输入口接按键,P7.4567为输出口接电机驱动
+  103   1        P40 = 0;    //打开LED电源 
+  104   1        EA=1;
+  105   1      }
+  106          
+  107          /***************************************************************
+  108          【函数名】 void Working(void)
+  109          【功  能】 提示系统在运行中
+  110          【参数值】 无 
+  111          【返回值】 无   运行在中断中的函数 不要加延时 影响主函数的运行 
+  112          ****************************************************************/
+  113          void Working(void){
+  114   1      
+  115   1          P42 = 0;  //核心板绿灯 
+  116   1          delayms(200); 
+  117   1          P42 = 1;
+  118   1          delayms(200);  
+  119   1        //LED_Ctrl(LED1p,RVS);        //LED同时闪烁
+  120   1      }
+  121          
+  122          /***************************************************************
+  123          【函数名】void timer1_int (void) interrupt 3 
+  124          【功  能】中断1服务函数
+C251 COMPILER V5.60.0,  main                                                               09/04/23  13:54:39  PAGE 3   
+
+  125          【参数值】无
+  126          【返回值】无
+  127          ****************************************************************/
+  128          void timer1_int (void) interrupt 3
+  129          {
+  130   1          //Working();
+  131   1      }
+  132          
+  133          /***************************************************************
+  134          【函数名】void Get_ADC_Data(void)
+  135          【功  能】得到ADC测得的感应电压
+  136          【参数值】无
+  137          【返回值】无
+  138          ****************************************************************/
+  139          void Get_ADC_Data(void){
+  140   1        
+  141   1          ADC_Data[0]=ADC_Read(0);    //前中          p 1.0  0
+  142   1          ADC_Data[1]=ADC_Read(1);    //前左          p 1.1  1
+  143   1          ADC_Data[2]=ADC_Read(10);   //后左          p 0.2  10
+  144   1          ADC_Data[3]=ADC_Read(9);    //后右          p 0.1  9
+  145   1          ADC_Data[4]=ADC_Read(11);   //前右          p 0.3  11
+  146   1      //    ADC_Data[5]=ADC_Read(8);    //            p 0.0  8
+  147   1      
+  148   1      }
+  149          
+  150          /***************************************************************
+  151          【函数名】void show_ADC_Data(void)
+  152          【功  能】OLED显示感应电压
+  153          【参数值】无
+  154          【返回值】无
+  155          ****************************************************************/
+  156          void show_ADC_Data(void){
+  157   1        
+  158   1          char txt[10];
+  159   1          OLED_CLS(); 
+  160   1        
+  161   1          sprintf(txt,"AD0:%04d ",ADC_Data[0]);  //显示ADC11的值
+  162   1          OLED_P6x8Str(0,0,(u8*)txt);
+  163   1        
+  164   1          sprintf(txt,"AD1:%04d ",ADC_Data[1]);  //显示ADC11的值
+  165   1          OLED_P6x8Str(0,1,(u8*)txt);
+  166   1        
+  167   1          sprintf(txt,"AD2:%04d ",ADC_Data[2]);  //显示ADC11的值
+  168   1          OLED_P6x8Str(0,2,(u8*)txt);
+  169   1        
+  170   1          sprintf(txt,"AD3:%04d ",ADC_Data[3]);  //显示ADC11的值
+  171   1          OLED_P6x8Str(0,3,(u8*)txt);
+  172   1        
+  173   1          sprintf(txt,"AD4:%04d ",ADC_Data[4]);  //显示ADC11的值
+  174   1          OLED_P6x8Str(0,4,(u8*)txt);
+  175   1        
+  176   1      
+  177   1        
+  178   1          delayms(40);
+  179   1        
+  180   1      }
+  181          
+  182          //舵机中值为  1657
+  183          //车在路中间时 的电感值           前中   前左  后左  后右  前右
+  184          //static int16_t ADC_Center[5] = {2411, 1717, 2218, 2344, 1599};
+  185          int fx = 0;  //1左   2右
+  186          void Servor_Control(int16_t adc[5]){
+  187   1      
+  188   1        char txt[5];
+  189   1        //第二种思路 根据前左 前右 两个传感器的信号进行判断  一开始测得前中传感器的值为2411
+  190   1        //根据这个值去判断当前偏离了道路中心偏移了多远
+C251 COMPILER V5.60.0,  main                                                               09/04/23  13:54:39  PAGE 4   
+
+  191   1        //应该是可以实现但是 没有加PID控制 舵机打角非常快 很难走直线
+  192   1        int16_t error;
+  193   1        short pwm_out;
+  194   1        //偏差 = 前左 - 前右
+  195   1        //error = dc[1] - adc[4]; //经过测试 发现不好 转向太早 用后边 2 个
+  196   1        error = adc[2] - adc[3];
+  197   1      
+  198   1        pwm_out = (short)PidLocCtrl_wz(&pid_servor, error);
+  199   1      
+  200   1        if(pwm_out > 100){
+  201   2          pwm_out = 100;
+  202   2        }
+  203   1      
+  204   1        else if(pwm_out < -100){
+  205   2          pwm_out = -100;
+  206   2        }
+  207   1      
+  208   1          //sprintf(txt,"pwm:%04d ",pwm_out);  //显示ADC11的值
+  209   1          //OLED_P6x8Str(0,5,(u8*)txt);
+  210   1      
+  211   1        ServoCtrl(Duty_Servor_Center + pwm_out);
+  212   1        
+  213   1        //delayms(200);
+  214   1      
+  215   1        //第一种思路 根据4个传感器的偏移方向判断车身姿态 不好 很难调试 需要的调整的参数太多
+  216   1        /*
+  217   1        int16_t qzhong = 0, qzhong_flag = 0;
+  218   1        int16_t qzuo   = 0, qzuo_flag   = 0;
+  219   1        int16_t hzuo   = 0, hzuo_flag   = 0;
+  220   1        int16_t hyou   = 0, hyou_flag   = 0;
+  221   1        int16_t qyou   = 0, qyou_flag   = 0;
+  222   1        
+  223   1        // 根据差值 判断车身当前的情况
+  224   1        qzuo = adc[1] - ADC_Center[1];
+  225   1        hzuo = adc[2] - ADC_Center[2];
+  226   1        hyou = adc[3] - ADC_Center[3];
+  227   1        qyou = adc[4] - ADC_Center[4];
+  228   1        
+  229   1        if(qzuo > 0) qzuo_flag = 2; else {qzuo_flag = 1; qzuo =- qzuo;}
+  230   1        if(hzuo > 0) hzuo_flag = 2; else {hzuo_flag = 1; hzuo =- hzuo;}
+  231   1        if(hyou > 0) hyou_flag = 1; else {hyou_flag = 2; hyou =- hyou;}
+  232   1        if(qyou > 0) qyou_flag = 1; else {qyou_flag = 2; qyou =- qyou;}
+  233   1        
+  234   1        //车身 偏右 舵机向左打角
+  235   1        if(qzuo_flag == 2 && hzuo_flag == 2 && hyou_flag == 2 && qyou_flag == 2){
+  236   1          Duty_Servor_Center  = Duty_Servor_Center + (qzuo + hzuo) * 0.005;
+  237   1          ServoCtrl(Duty_Servor_Center);
+  238   1        }
+  239   1        
+  240   1        //车身 偏左 舵机向右打角
+  241   1        if(qzuo_flag == 1 && hzuo_flag == 1 && hyou_flag == 1 && qyou_flag == 1){
+  242   1          Duty_Servor_Center  = Duty_Servor_Center - (qzuo + hzuo) * 0.005;
+  243   1          ServoCtrl(Duty_Servor_Center);
+  244   1        }
+  245   1        */
+  246   1      }
+*** WARNING C47 IN LINE 188 OF user\main.c: 'txt': unreferenced local variable
+  247          
+  248          
+  249          
+  250          
+  251          
+  252          
+  253          
+  254          
+  255          
+C251 COMPILER V5.60.0,  main                                                               09/04/23  13:54:39  PAGE 5   
+
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =       596     ------
+  ecode size           =    ------     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =        78         10
+  xdata-const size     =    ------     ------
+  edata size           =    ------     ------
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =        93     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  1 WARNING(S),  0 ERROR(S)

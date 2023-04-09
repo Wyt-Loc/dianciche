@@ -1,0 +1,528 @@
+C251 COMPILER V5.60.0,  balance                                                            08/04/23  17:37:21  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE balance
+OBJECT MODULE PLACED IN .\Objects\balance.obj
+COMPILER INVOKED BY: F:\MDK\C251\BIN\C251.EXE LQlib\ddc\balance.c LARGE INTR2 BROWSE INCDIR(.\user;.\LQlib\app;.\LQlib\d
+                    -dc;.\LQlib\driver) DEBUG PRINT(.\Listings\balance.lst) TABS(2) OBJECT(.\Objects\balance.obj) 
+
+stmt  level    source
+
+    1          /*LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
+    2          ¡¾Æ½    Ì¨¡¿±±¾©ÁúÇñÖÇÄÜ¿Æ¼¼×ÔÆ½ºâÄ¦ÍÐ³µ
+    3          ¡¾±à    Ð´¡¿chiusir
+    4          ¡¾E-mail  ¡¿chiusir@163.com
+    5          ¡¾Èí¼þ°æ±¾¡¿V1.1 °æÈ¨ËùÓÐ£¬µ¥Î»Ê¹ÓÃÇëÏÈÁªÏµÊÚÈ¨
+    6          ¡¾×îºó¸üÐÂ¡¿2020Äê4ÔÂ10ÈÕ
+    7          ¡¾Ïà¹ØÐÅÏ¢²Î¿¼ÏÂÁÐµØÖ·¡¿
+    8          ¡¾Íø    Õ¾¡¿http://www.lqist.cn
+    9          ¡¾ÌÔ±¦µêÆÌ¡¿http://longqiu.taobao.com
+   10          ------------------------------------------------
+   11          ¡¾dev.env.¡¿c251v557¼°ÒÔÉÏ°æ±¾
+   12          ¡¾Target ¡¿ STC16F40K
+   13          ¡¾SYS PLL¡¿ 30MHz
+   14          ------------------------------------------------
+   15          µ÷ÊÔ¹ý³Ì£º
+   16          1.¿ªÆôÖ÷¿Ø°åµçÔ´ºÍÇý¶¯Ä£¿éµçÔ´
+   17          2.ÊÖ¶¯½«Ð¡³µ°Ú·Åµ½»úÐµÆ½ºâÎ»ÖÃ
+   18          3.°´ÏÂ¡°×ßÆð¡±°´¼ü±ê¶¨²¢Æô¶¯Ð¡³µ
+   19          ------------------------------------------------
+   20          Ò£¿ØÐèÒªÓÃµ½À¶ÑÀÄ£¿é¼°APP
+   21          L--×ó×ª Left
+   22          R--ÓÒ×ª Right
+   23          A--¼ÓËÙ Accelerating
+   24          D--¼õËÙ Deceleration
+   25          P--Í£³µ Parking
+   26          B--Ä¬ÈÏÀ¶ÑÀÒ£¿Ø Bluetooth
+   27          T--µç´ÅÑ­¼£ Trace
+   28          BluetoothSPP--APPµÄ½áÊø·ûÉèÖÃÎª¡°ÆäËü¡±
+   29          QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ*/
+   30          #include "include.h"
+   31          #include <LQ_MotorServo.h>
+   32          #include "math.h"
+   33          
+   34          float data Zhongzhi = 0.01;                   //µ±¶æ»úÏòÓÒÆ«£¬ÆÁÄ»ÏÔÊ¾-5ÎªÆ½ºâµã£¬ZhongzhiÎª-5
+   35          u8  Flag_Target;
+   36          u8  Flag_Add,Flag_Dec,Flag_Left,Flag_Right;   //À¶ÑÀÒ£¿ØÏà¹ØµÄ±äÁ¿
+   37          u8  Trace_BT=1;                               //À¶ÑÀÒ£¿Ø»¹ÊÇÏßÕóCCDÑ­¼£ 1£ºÄ¬ÈÏ£¬À¶ÑÀÒ£¿Ø£»0£ºµç¸ÐÑ­¼£
+   38          u8  Flag_Stop=1,Flag_Show=0,Flag_Angle;       //Í£Ö¹±êÖ¾Î»ºÍ ÏÔÊ¾±êÖ¾Î» Ä¬ÈÏÍ£Ö¹ ÏÔÊ¾´ò¿ª
+   39          short ForwardBackFlag=0,LeftRightFlag=0;
+   40          short Vbat;                                   //µç³ØµçÑ¹
+   41          float Acceleration_Z;                         //ZÖá¼ÓËÙ¶È¼Æ  
+   42          float Balance_Kp = 29.5, Balance_Kd = 0.1, Balance_Ki = 0.001, Velocity_Kp = 0.8, Velocity_Ki = 0.88;//PI
+             -D²ÎÊý   
+   43          float Balance_Kcf = 0.05;                     //ÏòÐÄÁ¦¼ÆËãÏµÊý
+   44          float data Balance_Pwm,Servo_Pwm,Turn_Pwm,control_DJ=0;
+   45          float Pitch;
+   46          
+   47          short data aacx,aacy,aacz;                    //¼ÓËÙ¶È´«¸ÐÆ÷Ô­Ê¼Êý¾Ý
+   48          short data gyrox,gyroy,gyroz;                 //ÍÓÂÝÒÇÔ­Ê¼Êý¾Ý 
+   49          float data Angle_Balance;
+   50          float data Gyro_Balance;
+   51          float data Gyro_Turn;                         //Æ½ºâÇã½Ç Æ½ºâÍÓÂÝÒÇ ×ªÏòÍÓÂÝÒÇ
+   52          short data PWMMotor, PWMServo;                //µç»ú¶æ»úPWM±äÁ¿
+   53          unsigned short data Encoder;                  //±àÂëÆ÷µÄÂö³å¼ÆÊý
+   54          int data Motor_Bias=1, Motor_Integration=100; //µç»ú¿ØÖÆPID
+   55          float data Servo_Bias, Servo_Last_Bias, Servo_Integration;  //¶æ»ú¿ØÖÆPID
+   56          float data Target_Servo;                      //Ä¿±ê´ò½Ç
+   57          short data Velocity = 60;                     //ËÙ¶È   
+C251 COMPILER V5.60.0,  balance                                                            08/04/23  17:37:21  PAGE 2   
+
+   58          
+   59          float Servo_And_Angle = 1.9;                  //Çã½ÇÓë´ò½ÇµÄ¹ØÏµ
+   60          float Velocity_And_Angle = 0.16;              //ËÙ¶ÈÓëÇã½ÇµÄ¹ØÏµÏµÊý
+   61          float F_Moca = 1;                             //Ä¦²ÁÁ¦³ýÒÔÖÊÁ¿
+   62          
+   63          uint8_t Left_flag, Right_flag;
+   64          float Kalman_p[2];                            // ²»ÄÜÉ¾È¥£¬É¾È¥²ÉÖµ»á´íÎó¡£
+   65          /*************************************************************************
+   66          *  º¯ÊýÃû³Æ£ºvoid timer1_int (void) interrupt TIMER1_VECTOR
+   67          *  ¹¦ÄÜËµÃ÷£ºtimer1ÖÐ¶Ïº¯Êý.5ms¶¨Ê±ÖÐ¶Ï£¬ÑÏ¸ñ±£Ö¤²ÉÑùºÍÊý¾Ý´¦ÀíµÄÊ±¼äÍ¬²½,ËùÓÐµÄ¿ØÖÆ´úÂë¶¼ÔÚÕâÀïÃæ¡£
+   68          *  ²ÎÊýËµÃ÷£ºÎÞ
+   69          *  º¯Êý·µ»Ø£ºÎÞ
+   70          *  ÐÞ¸ÄÊ±¼ä£º2020Äê4ÔÂ20ÈÕ
+   71          *  ±¸    ×¢£ºÑÏ¸ñ±£Ö¤²ÉÑùºÍÊý¾Ý´¦ÀíµÄÊ±¼äÍ¬²½,ËùÓÐµÄ¿ØÖÆ´úÂë¶¼ÔÚÕâÀïÃæ¡£
+   72          *************************************************************************/
+   73          void timer0_int(void) interrupt 1  //Æ½ºâ³µÕ¼ÓÃ
+   74          {   
+   75   1          float data ang;
+   76   1          float data tmv;
+   77   1          float data Servo_PWM;   // ¶æ»úPID
+   78   1          int data Motor_PWM;     // µç»úPI
+   79   1          //10ms¿ØÖÆÒ»´Î£¬ÎªÁË±£Ö¤M·¨²âËÙµÄÊ±¼ä»ù×¼£¬Ê×ÏÈ¶ÁÈ¡±àÂëÆ÷Êý¾Ý
+   80   1          
+   81   1          ICM_Get_Raw_data(&aacx, &aacy, &aacz, &gyrox, &gyroy, &gyroz);                //µÃµ½¼ÓËÙ¶È´«¸ÐÆ÷Êý¾Ý 
+   82   1          Encoder = myabs(Read_Encoder(1));       
+   83   1          Key();                                         //===É¨Ãè°´¼ü×´Ì¬ µ¥»÷Ë«»÷¿ÉÒÔ¸Ä±äÐ¡³µÔËÐÐ×´Ì¬  
+   84   1          
+   85   1          ang = atan2(aacz, aacx) * 180.0 / PI;
+   86   1          Yijielvbo(ang, gyroy);
+   87   1          Angle_Balance = 90.0 - Angle;
+   88   1          //Gyro_Balance = Kalman_x[4][1];  
+   89   1        
+   90   1          // ÅÐ¶Ï×óÓÒÇã£¬×ËÌ¬
+   91   1          if(Angle_Balance - Zhongzhi > 1)
+   92   1          {
+   93   2            Left_flag = 1;
+   94   2            Right_flag = 0;
+   95   2          } 
+   96   1          else if(Angle_Balance - Zhongzhi < -1)
+   97   1          {
+   98   2            Left_flag = 0;
+   99   2            Right_flag = 1;
+  100   2          }
+  101   1          else
+  102   1          { 
+  103   2            Left_flag = 0;
+  104   2            Right_flag = 0;
+  105   2          }
+  106   1          
+  107   1          
+  108   1          // ¶æ»úÎ»ÖÃÊ½PID
+  109   1          Target_Servo = Servo_And_Angle * (Angle_Balance - Zhongzhi);                // Éè¶¨´ò½ÇÓëÇã½ÇµÄ¹ØÏµ
+  110   1          Servo_Bias = (Target_Servo - Servo_PWM);                                    // Ä¿±ê´ò½ÇÓëµ±Ç°´ò½ÇµÄÆ«²î
+  111   1          Servo_Integration += Servo_Bias;
+  112   1          if(Servo_Integration < -900)      Servo_Integration = -900; 
+  113   1          else if(Servo_Integration > 900)  Servo_Integration = 900;   
+  114   1          Servo_PWM = Balance_Kp * Servo_Bias + Balance_Ki * Servo_Integration + Balance_Kd * (Servo_Bias - Servo
+             -_Last_Bias);   //===¼ÆËãÆ½ºâ¿ØÖÆµÄµç»úPWM  PD¿ØÖÆ   kpÊÇPÏµÊý kdÊÇDÏµÊý 
+  115   1          Servo_Last_Bias = Servo_Bias;           //¸üÐÂÉÏÒ»´ÎµÄÆ«²î
+  116   1          
+  117   1          Balance_Pwm = Servo_PWM;                //===Æ½ºâPID¿ØÖÆ  
+  118   1      /*
+  119   1          if(Angle_Balance - Zhongzhi > 0)
+  120   1            Velocity = myabs(Angle_Balance - Zhongzhi)*3+25;
+  121   1          else if(Angle_Balance - Zhongzhi < 0)
+  122   1            Velocity = myabs(Angle_Balance - Zhongzhi)*2+25;
+C251 COMPILER V5.60.0,  balance                                                            08/04/23  17:37:21  PAGE 3   
+
+  123   1      */    
+  124   1          if(Angle_Balance - Zhongzhi > 0)
+  125   1            Velocity = Velocity_And_Angle * sqrt( (tan( +(Angle_Balance - Zhongzhi) * PI / 180.0 ) * 980 - F_Moca)
+             - * (-0.3 * Target_Servo + 122.33) )+30;
+  126   1          else if(Angle_Balance - Zhongzhi < 0)
+  127   1            Velocity = Velocity_And_Angle * sqrt( (tan( -(Angle_Balance - Zhongzhi) * PI / 180.0 ) * 980 - F_Moca)
+             - * (-0.3 * (-Target_Servo) + 122.33))+30;
+  128   1          
+  129   1          if(Velocity < 30)       Velocity = 30;                            //===ËÙ¶ÈÏÞ·ù×î´ó
+  130   1          else if(Velocity > 150)  Velocity = 150;                          //===ËÙ¶ÈÏÞ·ù×îÐ¡
+  131   1          
+  132   1          PWMServo = Servo_Center + Balance_Pwm;                            //===¶æ»ú¿ØÖÆ     
+  133   1          if(PWMServo < (Servo_Center - Servo_Delta)) PWMServo = Servo_Center - Servo_Delta;                //==
+             -=¶æ»ú½Ç¶ÈÏÞÖÆ
+  134   1          else if(PWMServo > (Servo_Center + Servo_Delta))  PWMServo = Servo_Center + Servo_Delta;          //===¶æ
+             -»ú½Ç¶ÈÏÞÖÆ
+  135   1          
+  136   1          if(Turn_Off(Angle_Balance,Voltage) == 0)                          //===Èç¹û²»´æÔÚÒì³£
+  137   1          { 
+  138   2            // µç»úÔöÁ¿Ê½PID
+  139   2            Motor_Bias = Encoder - Velocity;                    //¼ÆËãÆ«²î
+  140   2            Motor_PWM = 15 * Motor_Bias + 2 * Motor_Integration; //ÔöÁ¿Ê½PI¿ØÖÆÆ÷
+  141   2            Motor_Integration += Motor_Bias;                    //±£´æÉÏÒ»´ÎÆ«²î 
+  142   2            if(Motor_PWM > 2000) 
+  143   2              Motor_PWM = 2000;
+  144   2            else if(Motor_PWM < -6000) 
+  145   2              Motor_PWM = -6000;
+  146   2      
+  147   2            PWMMotor = Motor_PWM - 70 ;                         //===¼ÆËã×óÂÖµç»ú×îÖÕPWM£¬ËÀÇø70
+  148   2            SBB_Set_Motor_Servo_Pwm(-PWMMotor);                 //===¸³Öµ¸øPWM¼Ä´æÆ÷ 
+  149   2          }                                              
+  150   1          Flag_Show++;
+  151   1          Led_Flash(10);
+  152   1          //LED_Ctrl(LED0, RVS);   //LEDÉÁË¸ËµÃ÷ÖÐ¶ÏÖ´ÐÐÍê±Ï
+  153   1      } 
+*** WARNING C47 IN LINE 76 OF LQlib\ddc\balance.c: 'tmv': unreferenced local variable
+  154          
+  155          /*************************************************************************
+  156          *  º¯ÊýÃû³Æ£º
+  157          *  ¹¦ÄÜËµÃ÷£º
+  158          *  ²ÎÊýËµÃ÷£ºÎÞ
+  159          *  º¯Êý·µ»Ø£ºÎÞ
+  160          *  ÐÞ¸ÄÊ±¼ä£º2020Äê4ÔÂ20ÈÕ
+  161          *  ±¸    ×¢£º
+  162          *************************************************************************/
+  163          void Demo_SBB_Car(void)
+  164          { 
+  165   1        OLED_CLS();                        //ÇåÆÁ 
+  166   1        MotorInit(MOTOR_FREQUENCY);        //=====³õÊ¼»¯PWM 12.5KHZ£¬
+  167   1        MotorCtrl(100,0); 
+  168   1        ServoInit(10);                     //=====³õÊ¼»¯PWM100HZÇý¶¯ ¶æ»ú 
+  169   1        ServoCtrl(Servo_Center);           //¶æ»úÖÐÖµ 
+  170   1        Timer34EncInit();                  //=====±àÂëÆ÷½Ó¿Ú  
+  171   1        ADC_Init();                        //=====adc³õÊ¼»¯   
+  172   1        ICM20689_Init();                   //=====ICM20689³õÊ¼»¯
+  173   1        //ICM42605_Init();  
+  174   1        Timer0_init();                     // 200hz--->  5ms,Æ½ºâ³µÓÃ
+  175   1        OLED_P6x8Str(0,7,"timer0 ok");     //×Ö·û´®ÏÔÊ¾ 
+  176   1        delayms(100);
+  177   1        //GPIO_EXIT_Init();                //=====P3.7¸É»É¹ÜÍ£³µÖÐ¶Ï
+  178   1        EnableInterrupts;
+  179   1        OLED_CLS();                        //ÇåÆÁ 
+  180   1        OLED_Show();  
+  181   1        while(1)
+  182   1        {   
+  183   2          //if(KEY_Read(KEY1)==0)   //Ê¹ÓÃSBB APPºÍOLEDÏÔÊ¾ÆÁ
+C251 COMPILER V5.60.0,  balance                                                            08/04/23  17:37:21  PAGE 4   
+
+  184   2          if(Flag_Show>20)        
+  185   2          {  
+  186   3            Flag_Show=0;
+  187   3            OLED_Show();            //===ÏÔÊ¾ÆÁ´ò¿ª     
+  188   3          }                         //===¶ÁÈ¡±àÂëÆ÷µÄÖµ
+  189   2          //delayms(50);
+  190   2        } 
+  191   1      }
+  192          /**************************************************************************
+  193          º¯Êý¹¦ÄÜ£ºOLEDÏÔÊ¾
+  194          Èë¿Ú²ÎÊý£ºÎÞ
+  195          ·µ»Ø  Öµ£ºÎÞ
+  196          **************************************************************************/
+  197          void OLED_Show(void)
+  198          {
+  199   1        char txt[16];
+  200   1        short Vbat=0;
+  201   1        //=============µÚÒ»ÐÐÏÔÊ¾Ð¡³µÄ£Ê½===================//   
+  202   1        OLED_P6x8Str(19,0,(u8*)"LQ e-motorcycle");    
+  203   1        //=============µÚ2ÐÐÏÔÊ¾Ð¡³µÄ£Ê½====================//   
+  204   1        sprintf(txt,"%0.2f  %03d  0x%02X",Zhongzhi,ForwardBackFlag,Uart4_Receive);
+  205   1        OLED_P6x8Str(20,1,(u8*)txt);      
+  206   1        //=============µÚÈýÐÐ===============================//  
+  207   1        if(Flag_Stop) sprintf(txt,"Enc:%04d    Stop ",Encoder);
+  208   1        else  sprintf(txt,"Enc:%04d    Run ",Encoder);
+  209   1        OLED_P6x8Str(0,2,(u8*)txt); 
+  210   1        //=============µÚËÄÐÐ===============================//
+  211   1        sprintf(txt,"Ser:%04d mot:%04d ",PWMServo, PWMMotor);
+  212   1        OLED_P6x8Str(0,3,(u8*)txt);
+  213   1        //=============µÚÎåÐÐÏÔÊ¾µçÑ¹=======================//  
+  214   1        Vbat=ADC_Read(6)*4/5;  //10KºÍ1Kµç×è·ÖÑ¹ Voltage*3.3/4095*100*11  
+  215   1        sprintf(txt,"%02d.%02dV  %03d SP:%04d ",Vbat/100,Vbat%100,(short)Zhongzhi,(short)Servo_Pwm);
+  216   1        OLED_P6x8Str(0,4,(u8*)txt);
+  217   1        //=============µÚÁùÐÐÏÔÊ¾½Ç¶È=======================//
+  218   1        sprintf(txt,"Ang:%03d.%d   BP:%04d ",(short)Angle_Balance,myabs((short)(Angle_Balance*10))%10,(short)Bal
+             -ance_Pwm);
+  219   1        OLED_P6x8Str(0,5,(u8*)txt);
+  220   1        //=============µÚ7ÐÐÏÔÊ¾¶ÁÈ¡µç¸ÐÖµ==================//
+  221   1        //Show_TSL1401(1); 
+  222   1        sprintf(txt,"x:%04d y:%04d z:%04d ",aacx, aacy, aacz);
+  223   1        OLED_P6x8Str(0,6,(u8*)txt);
+  224   1        //=============µÚ8ÐÐÏÔÊ¾¶ÁÈ¡µç¸ÐÖµ==================//
+  225   1        sprintf(txt,"L:%04d R:%04d V:%03d ",left,right,Velocity);
+  226   1        OLED_P6x8Str(0,7,(u8*)txt);
+  227   1      }
+  228          /*************************************************************************
+  229          *  º¯ÊýÃû³Æ£ºint SBB_Get_BalancePI(float angle,float Gyro)
+  230          *  ¹¦ÄÜËµÃ÷£ºÆ½ºâ»·PI¿ØÖÆ
+  231          *  ²ÎÊýËµÃ÷£º½Ç¶È¡¢½ÇËÙ¶È
+  232          *  º¯Êý·µ»Ø£ºÖ±Á¢¿ØÖÆPWM
+  233          *  ÐÞ¸ÄÊ±¼ä£º2020Äê4ÔÂ20ÈÕ
+  234          *  ±¸    ×¢£º
+  235          *************************************************************************/
+  236          int SBB_Get_BalancePI(float angle,float Gyro)
+  237          {  
+  238   1        float Bias;
+  239   1        static float Integration;
+  240   1        int SBB_Get_BalancePID;
+  241   1        
+  242   1        Bias = angle - Zhongzhi;   //===Çó³öÆ½ºâµÄ½Ç¶ÈÖÐÖµºÍ»úÐµÏà¹Ø
+  243   1        Integration += Bias;
+  244   1      
+  245   1        if(Integration<-900)      Integration = -900; 
+  246   1        else if(Integration>900)  Integration = 900;   
+  247   1      
+  248   1        SBB_Get_BalancePID = Balance_Kp * Bias + Integration * Balance_Ki + Gyro * Balance_Kd;   //===¼ÆËãÆ½ºâ¿
+C251 COMPILER V5.60.0,  balance                                                            08/04/23  17:37:21  PAGE 5   
+
+             -ØÖÆµÄµç»úPWM  PD¿ØÖÆ   kpÊÇPÏµÊý kdÊÇDÏµÊý 
+  249   1        return SBB_Get_BalancePID;
+  250   1      }
+  251          /*************************************************************************
+  252          *  º¯ÊýÃû³Æ£ºint SBB_Get_Servo_Turn(int servo_input)
+  253          *  ¹¦ÄÜËµÃ÷£º¶æ»ú½Ç¶È¿ØÖÆ£¬×ÔÆ½ºâ×ªÏò»·
+  254          *  ²ÎÊýËµÃ÷£º¶æ»ú½Ç¶È
+  255          *  º¯Êý·µ»Ø£º¶æ»ú¿ØÖÆPWM
+  256          *  ÐÞ¸ÄÊ±¼ä£º2020Äê4ÔÂ20ÈÕ
+  257          *  ±¸    ×¢£º´Ë´¦ÉÐÐè¼ÓÈë×ªÈ¦µÄÏòÐÄÁ¦»·½Ú
+  258          *************************************************************************/
+  259          int SBB_Get_Servo_Turn(int servo_input)
+  260          {  
+  261   1        
+  262   1        static float speed,Encoder_Least,Encoder;
+  263   1        static float Encoder_Integral;
+  264   1      
+  265   1        InductorNormal();
+  266   1        //=============Ò£¿Ø×ªÏò»òµç¸ÐÑ­¼£=======================// 
+  267   1        if(Trace_BT)// À¶ÑÀÒ£¿Ø
+  268   1        {
+  269   2          if(Flag_Right)      LeftRightFlag=-120;        //===ÏòÓÒ×ª 
+  270   2          else if(Flag_Left)  LeftRightFlag= 120;        //===Ïò×ó×ª
+  271   2          else  LeftRightFlag=0;
+  272   2        }/*
+  273   1        else // µç¸ÐÑ­¼£
+  274   1        {   
+  275   1        if(LnowADC[0]<5&&LnowADC[1]<5)   Flag_Stop=1; 
+  276   1        else
+  277   1          {
+  278   1            if(deviation<25&&deviation>-25)
+  279   1            {
+  280   1              LeftRightFlag=(left-right)*3/10;  
+  281   1              control_DJ = (right-left)/10;
+  282   1            }
+  283   1            if((deviation>25&&deviation<45)||(deviation<-25&&deviation>-45))
+  284   1            {
+  285   1              LeftRightFlag=(left-right)*3/10;   
+  286   1              control_DJ = (right-left)/10;
+  287   1            }
+  288   1            if(deviation>45||deviation<-45)
+  289   1            {
+  290   1              LeftRightFlag=(left-right)*6/5;  
+  291   1              control_DJ = (right-left)/2;
+  292   1            }
+  293   1         }
+  294   1       }
+  295   1       */
+  296   1        //=============ËÙ¶ÈPI¿ØÖÆÆ÷=======================//  
+  297   1        Encoder_Least =servo_input-0;                                     //===»ñÈ¡×îÐÂÆ«²î
+  298   1        Encoder *= 0.8;                                                   //===Ò»½×µÍÍ¨ÂË²¨Æ÷       
+  299   1        Encoder += Encoder_Least*0.2;                                     //===Ò»½×µÍÍ¨ÂË²¨Æ÷    
+  300   1        Encoder_Integral +=Encoder;                                       //===»ý·Ö³öÎ»ÒÆ »ý·ÖÊ±¼ä£º10ms
+  301   1        Encoder_Integral=Encoder_Integral-LeftRightFlag;                  //===½ÓÊÕÒ£¿ØÆ÷Êý¾Ý£¬¿ØÖÆÇ°½øºóÍË
+  302   1        if(Encoder_Integral>4000)   Encoder_Integral=4000;                //===»ý·ÖÏÞ·ù
+  303   1        else if(Encoder_Integral<-4000) Encoder_Integral=-4000;           //===»ý·ÖÏÞ·ù 
+  304   1        speed=Encoder*Velocity_Kp+Encoder_Integral*Velocity_Ki/100;    //===ËÙ¶È¿ØÖÆ  
+  305   1        if(Flag_Stop==1) Encoder_Integral=0;
+  306   1        return speed;//ÓÐÎÊÌâ£¬Æ½Ê±Õâ¸öÊýÖµ²»±ä£¬µç»úÃ»·¨Çý¶¯µÄ 
+  307   1      }
+  308          /*************************************************************************
+  309          *  º¯ÊýÃû³Æ£ºint SBB_Get_MotorPI (int Encoder,int Target)
+  310          *  ¹¦ÄÜËµÃ÷£ºµç»úËÙ¶È»·ÔöÁ¿Ê½PI¿ØÖÆ
+  311          *  ²ÎÊýËµÃ÷£º±àÂëÆ÷Öµ£¬Ä¿±êËÙ¶È
+  312          *  º¯Êý·µ»Ø£ºµç»úPWM
+  313          *  ÐÞ¸ÄÊ±¼ä£º2020Äê4ÔÂ20ÈÕ
+C251 COMPILER V5.60.0,  balance                                                            08/04/23  17:37:21  PAGE 6   
+
+  314          *  ±¸    ×¢£º
+  315          *************************************************************************/
+  316          int SBB_Get_MotorPI (int Encoder,int Target)
+  317          {   
+  318   1        static int Bias, Pwm, Last_bias;
+  319   1      
+  320   1        Bias = Encoder - Target;              //¼ÆËãÆ«²î
+  321   1        Pwm += 18 * (Last_bias - Bias) + 22 * Bias;   //ÔöÁ¿Ê½PI¿ØÖÆÆ÷
+  322   1        
+  323   1        if(Pwm > 5200) Pwm = 5200;
+  324   1        else if(Pwm < -5200) Pwm = -5200;
+  325   1        Last_bias = Bias;                     //±£´æÉÏÒ»´ÎÆ«²î 
+  326   1        return Pwm;                         //ÔöÁ¿Êä³ö
+  327   1      }
+  328          /*************************************************************************
+  329          *  º¯ÊýÃû³Æ£ºvoid SBB_Set_Motor_Servo_Pwm(int moto1)
+  330          *  ¹¦ÄÜËµÃ÷£º¸³Öµ¸øPWM¼Ä´æÆ÷£¬¶æ»úºÍÇý¶¯µç»ú
+  331          *  ²ÎÊýËµÃ÷£ºPWM µç»ú·¶Î§£º¡¾-800£¬800¡¿
+  332          *  º¯Êý·µ»Ø£ºÎÞ
+  333          *  ÐÞ¸ÄÊ±¼ä£º2020Äê4ÔÂ20ÈÕ
+  334          *  ±¸    ×¢£º
+  335          *************************************************************************/
+  336          void SBB_Set_Motor_Servo_Pwm(int moto1)
+  337          {
+  338   1        //short siqu=1000;
+  339   1      
+  340   1         MotorCtrl (moto1,0); //ÓÃÁúÇñDRV8701»òÕßBTN7971Çý¶¯°å
+  341   1         ServoCtrl (PWMServo);//¶æ»ú¿ØÖÆPWM ¶æ»ú·¶Î§£º¡¾0£¬10000¡¿
+  342   1      }
+  343          
+  344          /*************************************************************************
+  345          *  º¯ÊýÃû³Æ£ºvoid Key(void)
+  346          *  ¹¦ÄÜËµÃ÷£º°´¼üÐÞ¸ÄÐ¡³µÔËÐÐ×´Ì¬ 
+  347          *  ²ÎÊýËµÃ÷£ºÎÞ
+  348          *  º¯Êý·µ»Ø£ºÎÞ
+  349          *  ÐÞ¸ÄÊ±¼ä£º2020Äê4ÔÂ20ÈÕ
+  350          *  ±¸    ×¢£º
+  351          *************************************************************************/
+  352          void Key(void)
+  353          { 
+  354   1        if(KEY_Read(KEY3)==0)
+  355   1        {
+  356   2          Flag_Stop=!Flag_Stop;   //µ¥»÷K3(ÆôÍ£¼ü)¿ØÖÆÐ¡³µµÄÆôÍ£    
+  357   2        }  
+  358   1        else if(KEY_Read_All()==KEY02DOWN)
+  359   1        {
+  360   2          Zhongzhi=Angle_Balance,Flag_Angle=0;//Í¬Ê±°´ÏÂK0 K2¼ü±ê¶¨
+  361   2        } 
+  362   1      }
+  363          /*************************************************************************
+  364          *  º¯ÊýÃû³Æ£ºu8 Turn_Off(float angle, int voltage)
+  365          *  ¹¦ÄÜËµÃ÷£ºÒì³£¹Ø±Õµç»ú
+  366          *  ²ÎÊýËµÃ÷£ºÇãÐ±½Ç¶È£¬µçÑ¹
+  367          *  º¯Êý·µ»Ø£º1£ºÒì³£  0£ºÕý³£
+  368          *  ÐÞ¸ÄÊ±¼ä£º2020Äê4ÔÂ20ÈÕ
+  369          *  ±¸    ×¢£º
+  370          *************************************************************************/
+  371          u8 Turn_Off(float angle, int volt)
+  372          {
+  373   1        u8 temp;
+  374   1        //if(angle<-40||angle>40||1==Flag_Stop||volt<710||Roll<-20)//µç³ØµçÑ¹µÍÓÚ7.1V¹Ø±Õµç»ú
+  375   1        if(angle<-35 || angle>35|| 1==Flag_Stop)
+  376   1        {                                                  //===Çã½Ç´óÓÚ40¶È¹Ø±Õµç»ú
+  377   2          temp=1;                                          //===Flag_StopÖÃ1¹Ø±Õµç»ú
+  378   2          MotorCtrl(10,0); //ÓÃÁúÇñDRV8701»òÕßBTN7971Çý¶¯°å
+  379   2          ServoCtrl(Servo_Center);//¶æ»ú¿ØÖÆPWM ¶æ»ú·¶Î§£º¡¾0£¬10000¡¿
+C251 COMPILER V5.60.0,  balance                                                            08/04/23  17:37:21  PAGE 7   
+
+  380   2          Flag_Stop=1;  
+  381   2          ForwardBackFlag=0,LeftRightFlag=0;
+  382   2        }
+  383   1        else
+  384   1          temp=0;
+  385   1        return temp;      
+  386   1      }
+*** WARNING C47 IN LINE 371 OF LQlib\ddc\balance.c: 'volt': unreferenced parameter
+  387          /*************************************************************************
+  388          *  º¯ÊýÃû³Æ£ºvoid SBB_Get_Angle(u8 way)
+  389          *  ¹¦ÄÜËµÃ÷£º»ñÈ¡½Ç¶È ÈýÖÖËã·¨¾­¹ýÎÒÃÇµÄµ÷Ð££¬¶¼·Ç³£ÀíÏë 
+  390          *  ²ÎÊýËµÃ÷£º»ñÈ¡½Ç¶ÈµÄËã·¨ 1£ºDMP  2£º¿¨¶ûÂü 3£º»¥²¹ÂË²¨
+  391          *  º¯Êý·µ»Ø£ºÎÞ
+  392          *  ÐÞ¸ÄÊ±¼ä£º2020Äê4ÔÂ20ÈÕ
+  393          *  ±¸    ×¢£º
+  394          *************************************************************************/
+  395          void SBB_Get_Angle(u8 way)
+  396          { 
+  397   1        short data gyro_x,gyro_y,gyro_z, accel_x,accel_y,accel_z;
+  398   1        
+  399   1        ICM_Get_Raw_data(&accel_x,&accel_y,&accel_z,&gyro_x,&gyro_y,&gyro_z); //µÃµ½¼ÓËÙ¶È´«¸ÐÆ÷Êý¾Ý  
+  400   1        
+  401   1        if(way==1)                         //===DMPµÄ¶ÁÈ¡ÔÚÊý¾Ý²É¼¯ÖÐ¶ÏÌáÐÑµÄÊ±ºò£¬ÑÏ¸ñ×ñÑ­Ê±ÐòÒªÇó
+  402   1        { 
+  403   2          //Read_DMP();                    //===¶ÁÈ¡¼ÓËÙ¶È¡¢½ÇËÙ¶È¡¢Çã½Ç
+  404   2          Angle_Balance= (0-Pitch);        //===¸üÐÂÆ½ºâÇã½Ç
+  405   2          Gyro_Balance = (0-gyro_y);      //===¸üÐÂÆ½ºâ½ÇËÙ¶È
+  406   2          Gyro_Turn=gyro_z;               //===¸üÐÂ×ªÏò½ÇËÙ¶È
+  407   2          Acceleration_Z=accel_z;         //===¸üÐÂZÖá¼ÓËÙ¶È¼Æ
+  408   2        } 
+  409   1        else if(way==2)   
+  410   1        {
+  411   2          Kalman_Filter((float)accel_z,(float)(0-gyro_y)); //¿¨¶ûÂü
+  412   2        }
+  413   1        else if(way==3)   
+  414   1        {
+  415   2          Yijielvbo((float)accel_z,(float)(0-gyro_y));     //»¥²¹ÂË²¨
+  416   2        }
+  417   1        else if(way==4) 
+  418   1        {
+  419   2          LQ_gyroY_accXZ((short)accel_x,(short)accel_z,(short)gyro_y);
+  420   2          Angle_Balance= 90.0-ACCEL_Ang_Y;        //===¸üÐÂÆ½ºâÇã½Ç
+  421   2          Gyro_Balance = (0-gyro_y);      //===¸üÐÂÆ½ºâ½ÇËÙ¶È
+  422   2          Gyro_Turn=gyro_z;               //===¸üÐÂ×ªÏò½ÇËÙ¶È
+  423   2          Acceleration_Z=accel_z;         //===¸üÐÂZÖá¼ÓËÙ¶È¼Æ    
+  424   2        } 
+  425   1      }
+  426          
+  427          /*************************************************************************
+  428          *  º¯ÊýÃû³Æ£ºint myabs(int a)
+  429          *  ¹¦ÄÜËµÃ÷£º¾ø¶ÔÖµº¯Êý
+  430          *  ²ÎÊýËµÃ÷£ºint
+  431          *  º¯Êý·µ»Ø£ºunsigned int
+  432          *  ÐÞ¸ÄÊ±¼ä£º2020Äê4ÔÂ20ÈÕ
+  433          *  ±¸    ×¢£º
+  434          *************************************************************************/
+  435          int myabs(int a)
+  436          {   
+  437   1        if(a<0) return(-a);  
+  438   1        else    return a;
+  439   1      }
+  440          /*************************************************************************
+  441          *  º¯ÊýÃû³Æ£ºint Put_Down(float angle,int encoder)
+  442          *  ¹¦ÄÜËµÃ÷£º¼ì²âÐ¡³µÊÇ·ñ±»·ÅÏÂ»òÕßË¤µ¹
+  443          *  ²ÎÊýËµÃ÷£ºÇãÐ±½Ç¶È£¬±àÂëÆ÷Öµ
+  444          *  º¯Êý·µ»Ø£ºint
+C251 COMPILER V5.60.0,  balance                                                            08/04/23  17:37:21  PAGE 8   
+
+  445          *  ÐÞ¸ÄÊ±¼ä£º2020Äê4ÔÂ20ÈÕ
+  446          *  ±¸    ×¢£º
+  447          *************************************************************************/
+  448          int Put_Down(float angle,int encoder)
+  449          {        
+  450   1        static u16 flag,count;                     
+  451   1        if(flag==0)                                               
+  452   1        {
+  453   2          if(angle>(-40+Zhongzhi)&&angle<(40+Zhongzhi)&&encoder<2&&encoder>-2&&Flag_Stop==1)         //Ìõ¼þ1£¬Ð
+             -¡³µÊÇÔÚ0¶È¸½½üµÄ
+  454   2            flag=1; 
+  455   2        } 
+  456   1        else if(flag==1)                                               
+  457   1        {
+  458   2          if(++count>50)                //³¬Ê±²»ÔÙµÈ´ý 500ms
+  459   2          {
+  460   3            count=0;flag=0;
+  461   3          }
+  462   2          if(encoder<-8)                //Ìõ¼þ2£¬Ð¡³µµÄÂÖÌ¥ÔÚÎ´ÉÏµçµÄÊ±ºò±»ÈËÎª×ª¶¯  
+  463   2          {      
+  464   3            flag=0;
+  465   3            return 1;                   //¼ì²âµ½Ð¡³µ±»·ÅÏÂ
+  466   3          }
+  467   2        }
+  468   1        return 0;
+  469   1      }
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =      2655     ------
+  ecode size           =    ------     ------
+  data size            =        66          2
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =       105         26
+  xdata-const size     =    ------     ------
+  edata size           =    ------     ------
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =       330     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  2 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,1 @@
+"LQlib\app\LQ_OLED096.c" LARGE INTR2 BROWSE INCDIR(.\user;.\LQlib\app;.\LQlib\driver) DEBUG PRINT(.\Listings\LQ_OLED096.lst) TABS (2) OBJECT(.\Objects\LQ_OLED096.obj)
